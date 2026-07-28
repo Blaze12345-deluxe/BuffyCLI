@@ -155,6 +155,10 @@ buffy <command> [args...]
   Add a new repository. Validates the URL by fetching its index.json.
   Example: buffy --repo add github.com/community/tools
 
+--repo <url>
+  Shorthand for --repo add. Same behavior: validates and adds the URL.
+  Example: buffy --repo https://github.com/Blaze12345-deluxe/Buffy-Plugins
+
 --repo remove <url>
   Remove a repository from the configuration.
   Example: buffy --repo remove github.com/community/tools

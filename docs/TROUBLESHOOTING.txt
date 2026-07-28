@@ -43,6 +43,7 @@ Solutions:
   - Search across all repos: buffy --repo search pip-env
   - Refresh repository indexes: buffy --repo refresh
   - Add a repository: buffy --repo add github.com/user/repo
+    (or: buffy --repo https://github.com/user/repo  -- shorthand for add)
   - Check network: buffy --doctor
 
 

@@ -307,7 +307,8 @@ BuffyError (src/error.rs):
   Top-level errors for CLI dispatch and package management. Each variant
   includes a user-facing tip in its display message. Common variants:
     CommandNotFound        - suggests --list or --repo search
-    PackageNotFound        - suggests --repo search or --repo add
+    PackageNotFound        - suggests --repo search or --repo add <url>
+                             (or just --repo <url> as shorthand)
     ConfigError            - suggests --repair or --reset
     CircularDependency     - suggests checking dependency declarations
     BslRuntime             - suggests OUTPUT = true to see command output
