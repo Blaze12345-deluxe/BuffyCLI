@@ -52,6 +52,9 @@ Step 4: Verify the installation:
 Expected output:
   buffy v0.1.0
 
+Step 5 (optional): Keep up to date:
+  cd BuffyCLI && git pull origin master && cargo build --release && sudo cp target/release/buffy /usr/local/bin/buffy
+
 
 ================================================================================
 3.  OPTION 2: INSTALL VIA CARGO
@@ -93,6 +96,16 @@ Shell Completion (recommended):
 
 To make completion permanent, add the eval line to your shell's rc file:
   echo 'eval "$(buffy --completion bash)"' >> ~/.bashrc
+
+Add the official plugin repository:
+  buffy --repo https://github.com/Blaze12345-deluxe/Buffy-Plugins
+  (or: buffy --repo add https://github.com/Blaze12345-deluxe/Buffy-Plugins)
+
+List configured repositories to confirm:
+  buffy --repo list
+
+Search for available packages:
+  buffy --repo search
 
 Install your first package:
   buffy --install pip-env
