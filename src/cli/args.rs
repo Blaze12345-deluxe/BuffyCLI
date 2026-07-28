@@ -95,11 +95,11 @@ pub struct CliArgs {
     /// Manage package repositories (list, add, remove, refresh, search)
     ///
     /// Examples:
-    ///   buffy --repo list             List configured repositories
-    ///   buffy --repo add <url>        Add and validate a repository
-    ///   buffy --repo remove <url>     Remove a repository
-    ///   buffy --repo refresh          Force-refresh all repository indexes
-    ///   buffy --repo search <query>   Search packages across all repositories
+    ///   buffy --repo list               List configured repositories    ///   buffy --repo add <url>        Add and validate a repository
+    ///   buffy --repo <url>              Shorthand for --repo add
+    ///   buffy --repo remove <url>       Remove a repository
+    ///   buffy --repo refresh            Force-refresh all repository indexes
+    ///   buffy --repo search <query>     Search packages across all repositories
     #[arg(long = "repo", help = "Manage package repositories")]
     pub repo: Option<Vec<String>>,
 

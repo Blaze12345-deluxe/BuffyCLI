@@ -437,6 +437,29 @@ fn verify_package(name: String) -> Result<()> {
     }
 }
 
+fn add_repository(url: &str) -> Result<()> {
+    let repos = crate::config::settings::read_repositories()?;
+    if repos.iter().any(|r| r == url) {
+        println!("Repository already configured: {}", url);
+        return Ok(());
+    }
+
+    println!("Validating repository...");
+    match crate::repository::validate_repository(url) {
+        Ok(()) => {
+            let mut repos = repos;
+            repos.push(url.to_string());
+            crate::config::settings::write_repositories(&repos)?;
+            println!("Added repository: {}", url);
+        }
+        Err(e) => {
+            eprintln!("Could not add repository: {}", e);
+            eprintln!("Make sure the URL is correct and the repository has a valid index.json.");
+        }
+    }
+    Ok(())
+}
+
 fn manage_repositories(args: Vec<String>) -> Result<()> {
     let cmd = args.first().map(|s| s.as_str()).unwrap_or("list");
 
@@ -448,25 +471,7 @@ fn manage_repositories(args: Vec<String>) -> Result<()> {
         }
         "add" => {
             if args.len() < 2 { eprintln!("Usage: buffy --repo add <url>"); }
-            else {
-                let repos = crate::config::settings::read_repositories()?;
-                if repos.contains(&args[1]) { println!("Repository already configured: {}", args[1]); return Ok(()); }
-
-                // Validate the repository before adding
-                println!("Validating repository...");
-                match crate::repository::validate_repository(&args[1]) {
-                    Ok(()) => {
-                        let mut repos = repos;
-                        repos.push(args[1].clone());
-                        crate::config::settings::write_repositories(&repos)?;
-                        println!("Added repository: {}", args[1]);
-                    }
-                    Err(e) => {
-                        eprintln!("Could not add repository: {}", e);
-                        eprintln!("Make sure the URL is correct and the repository has a valid index.json.");
-                    }
-                }
-            }
+            else { add_repository(&args[1])?; }
         }
         "remove" => {
             if args.len() < 2 { eprintln!("Usage: buffy --repo remove <url>"); }
@@ -521,7 +526,14 @@ fn manage_repositories(args: Vec<String>) -> Result<()> {
                 }
             }
         }
-        _ => { eprintln!("Unknown repo command: {}\nUsage: buffy --repo [list|add|remove|refresh|search]", args[0]); }
+        url => {
+            // If it looks like a URL, treat as an implicit "add"
+            if url.starts_with("https://") || url.starts_with("http://") || url.starts_with("github.com/") {
+                add_repository(url)?;
+            } else {
+                eprintln!("Unknown repo command: {}\nUsage: buffy --repo [list|add|remove|refresh|search]\n       buffy --repo <url>  (shortcut to add a repository)", url);
+            }
+        }
     }
     Ok(())
 }
