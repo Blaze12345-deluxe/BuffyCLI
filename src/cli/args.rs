@@ -59,7 +59,7 @@ pub struct CliArgs {
     ///   buffy --install github.com/user/repo pkg   From specific repository
     ///   buffy --install pip-env                    Search configured repos
     ///   buffy --install github.com/user/repo @     Install all packages from a repo
-    #[arg(long = "install", help = "Install package(s) from file, repo, or by name")]
+    #[arg(long = "install", num_args(1..), help = "Install package(s) from file, repo, or by name")]
     pub install: Option<Vec<String>>,
 
     /// Uninstall a package by name
@@ -95,12 +95,13 @@ pub struct CliArgs {
     /// Manage package repositories (list, add, remove, refresh, search)
     ///
     /// Examples:
-    ///   buffy --repo list               List configured repositories    ///   buffy --repo add <url>        Add and validate a repository
+    ///   buffy --repo list               List configured repositories
+    ///   buffy --repo add <url>          Add and validate a repository
     ///   buffy --repo <url>              Shorthand for --repo add
     ///   buffy --repo remove <url>       Remove a repository
     ///   buffy --repo refresh            Force-refresh all repository indexes
     ///   buffy --repo search <query>     Search packages across all repositories
-    #[arg(long = "repo", help = "Manage package repositories")]
+    #[arg(long = "repo", num_args(1..), help = "Manage package repositories")]
     pub repo: Option<Vec<String>>,
 
     // ── Logs ──
@@ -143,7 +144,7 @@ pub struct CliArgs {
     ///   buffy --alias set ve pip-env          Create shortcut alias
     ///   buffy --alias remove ve               Remove an alias
     ///   buffy --alias resolve pip-env         Show cached conflict preference
-    #[arg(long = "alias", help = "Manage aliases and conflict preferences")]
+    #[arg(long = "alias", num_args(1..), help = "Manage aliases and conflict preferences")]
     pub alias: Option<Vec<String>>,
 
     // ── System ──
