@@ -1,0 +1,15 @@
+{
+    "name": "docker-tools",
+    "version": "2026.07.28",
+    "description": "Docker Compose utilities: up, down, restart, logs, update (pull + recreate), and system prune.",
+    "author": "Buffy Community",
+    "sha256": "ce4578bd929558dbfa17dac1f20f3bc11020703ec8b1d2b477fa8a7fb7ba5696",
+    "tags": ["docker", "compose", "containers", "devops", "cleanup"],
+    "commands": ["docker-up", "docker-down", "docker-restart", "docker-logs", "docker-update", "docker-prune"],
+    "dependencies": {
+        "system": ["docker"],
+        "packages": []
+    },
+    "license": "MIT",
+    "min_buffy_version": "0.1.0"
+}

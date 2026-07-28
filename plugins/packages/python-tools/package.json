@@ -1,0 +1,15 @@
+{
+    "name": "python-tools",
+    "version": "2026.07.28",
+    "description": "Python development utilities: version check, pip freeze, pip install, pip upgrade, and cache cleanup.",
+    "author": "Buffy Community",
+    "sha256": "376dbaddddccb86297d1589ebd6c2372365d8d71d19daf6e6b2ea5ec704f0b05",
+    "tags": ["python", "pip", "venv", "development", "cleanup"],
+    "commands": ["python-version", "pip-freeze", "pip-install", "pip-update", "python-clean"],
+    "dependencies": {
+        "system": ["python3", "python3-pip"],
+        "packages": []
+    },
+    "license": "MIT",
+    "min_buffy_version": "0.1.0"
+}

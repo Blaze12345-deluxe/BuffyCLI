@@ -117,15 +117,16 @@ fn update_single(
             }
 
             // Update installed.json with new version info and deps
+            let combined_hash = manifest.combined_hash();
             let mut installed = crate::config::settings::read_installed()?;
             if let Some(existing) = installed.iter_mut().find(|e| e.name == entry.name) {
-                existing.version = manifest.version;
+                existing.version = manifest.version.clone();
                 existing.installed = chrono::Local::now().format("%Y-%m-%d").to_string();
                 existing.dependencies = crate::config::settings::Dependencies {
-                    system: manifest.dependencies.system,
-                    packages: manifest.dependencies.packages,
+                    system: manifest.dependencies.system.clone(),
+                    packages: manifest.dependencies.packages.clone(),
                 };
-                existing.sha256 = manifest.sha256;
+                existing.sha256 = combined_hash;
             }
             crate::config::settings::write_installed(&installed)?;
         }

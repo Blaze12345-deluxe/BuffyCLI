@@ -1,6 +1,7 @@
 use crate::error::{BuffyError, Result};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
+use std::collections::HashMap;
 use std::path::Path;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -9,8 +10,10 @@ pub struct PackageManifest {
     pub version: String,
     pub description: String,
     pub author: String,
-    #[serde(default)]
-    pub sha256: String,
+    /// Per-file SHA-256 hashes keyed by .bsl filename.
+    /// Can also be a single combined hash string for legacy compatibility.
+    #[serde(default, deserialize_with = "deserialize_sha256")]
+    pub sha256: HashMap<String, String>,
     #[serde(default)]
     pub tags: Vec<String>,
     #[serde(default)]
@@ -21,6 +24,75 @@ pub struct PackageManifest {
     pub license: String,
     #[serde(default)]
     pub homepage: String,
+}
+
+/// Wrapper enum for backward-compatible sha256 deserialization.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Sha256Format {
+    PerFile(HashMap<String, String>),
+    Legacy(String),
+}
+
+/// Deserializes sha256 which can be either a single hash string (legacy)
+/// or an object mapping filenames to hashes.
+fn deserialize_sha256<'de, D>(deserializer: D) -> std::result::Result<HashMap<String, String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let format = Sha256Format::deserialize(deserializer)?;
+    match format {
+        Sha256Format::PerFile(map) => Ok(map),
+        Sha256Format::Legacy(h) => {
+            let mut map = HashMap::new();
+            map.insert("_combined".to_string(), h);
+            Ok(map)
+        }
+    }
+}
+
+impl PackageManifest {
+    /// Returns the hash for a specific .bsl file, or the combined legacy hash.
+    pub fn get_file_hash(&self, filename: &str) -> Option<&str> {
+        // Try per-file first
+        if let Some(h) = self.sha256.get(filename) {
+            return Some(h.as_str());
+        }
+        // Try combined legacy hash
+        if filename.ends_with(".bsl") && self.sha256.contains_key("_combined") {
+            return self.sha256.get("_combined").map(|s| s.as_str());
+        }
+        // Fallback: return any single-entry value if there's only one
+        if self.sha256.len() == 1 && !self.sha256.contains_key("_combined") {
+            return self.sha256.values().next().map(|s| s.as_str());
+        }
+        None
+    }
+
+    /// Returns true if this manifest uses per-file hashes.
+    pub fn is_per_file(&self) -> bool {
+        !self.sha256.contains_key("_combined") && !self.sha256.is_empty()
+    }
+
+    /// Returns a deterministic combined hash string from per-file hashes.
+    /// Used for conflict detection and storage in InstalledEntry.
+    pub fn combined_hash(&self) -> String {
+        // If legacy combined format, return it directly
+        if let Some(h) = self.sha256.get("_combined") {
+            return h.clone();
+        }
+        // Sort keys for deterministic output, then concatenate all hashes
+        let mut keys: Vec<&String> = self.sha256.keys().collect();
+        keys.sort();
+        let combined = keys.iter()
+            .filter_map(|k| self.sha256.get(*k))
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("");
+        // Hash the concatenated hashes for a fixed-length combined hash
+        let hash = sha2::Sha256::digest(combined.as_bytes());
+        format!("{:x}", hash)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -79,7 +151,13 @@ pub fn validate(package_dir: &Path) -> Result<PackageManifest> {
 /// Generates a minimal manifest from a standalone .bsl file.
 pub fn generate_from_bsl(name: &str, bsl_path: &Path) -> Result<PackageManifest> {
     let content = sha2::Sha256::digest(std::fs::read(bsl_path)?);
-    let sha256 = format!("{:x}", content);
+    let bsl_filename = bsl_path.file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown")
+        .to_string();
+    let hash = format!("{:x}", content);
+    let mut sha256 = HashMap::new();
+    sha256.insert(bsl_filename, hash);
 
     Ok(PackageManifest {
         name: name.to_string(),

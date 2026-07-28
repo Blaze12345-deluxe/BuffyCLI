@@ -71,17 +71,18 @@ fn install_local(path: &str) -> Result<()> {
     println!("  -> package.json");
 
     // Register in installed.json
+    let combined_hash = manifest.combined_hash();
     let mut installed = crate::config::settings::read_installed()?;
     installed.push(crate::config::settings::InstalledEntry {
         name: name.clone(),
-        version: manifest.version,
+        version: manifest.version.clone(),
         installed: chrono::Local::now().format("%Y-%m-%d").to_string(),
         source: "local".to_string(),
-        sha256: manifest.sha256,
-        author: manifest.author,
+        sha256: combined_hash,
+        author: manifest.author.clone(),
         dependencies: crate::config::settings::Dependencies {
-            system: manifest.dependencies.system,
-            packages: manifest.dependencies.packages,
+            system: manifest.dependencies.system.clone(),
+            packages: manifest.dependencies.packages.clone(),
         },
     });
     crate::config::settings::write_installed(&installed)?;
@@ -166,14 +167,15 @@ fn install_from_github(repo: &str, packages: &[String]) -> Result<usize> {
         let manifest = crate::package::manifest::validate(temp_dir.path())?;
 
         // Check for name conflicts with already-installed packages
-        if let Some((existing_sha, author, source)) = crate::config::aliases::detect_conflict(pkg_name, &manifest.sha256)? {
+        let combined_hash = manifest.combined_hash();
+        if let Some((existing_sha, author, source)) = crate::config::aliases::detect_conflict(pkg_name, &combined_hash)? {
             // Check if user has a cached preference
             if let Some((preferred_sha, _preferred_source)) = crate::config::aliases::resolve_conflict(pkg_name)? {
                 if preferred_sha == existing_sha {
                     println!("  Package \"{}\" has a conflict with existing installation.", pkg_name);
                     println!("  Using cached preference for existing version ({}...). Skipping.", &existing_sha[..12.min(existing_sha.len())]);
                     continue;
-                } else if preferred_sha == manifest.sha256 {
+                } else if preferred_sha == combined_hash {
                     println!("  Package \"{}\" has a conflict with existing installation.", pkg_name);
                     println!("  Using cached preference for new version. Overwriting...");
                 }
@@ -181,7 +183,7 @@ fn install_from_github(repo: &str, packages: &[String]) -> Result<usize> {
                 // No cached preference - prompt user
                 println!("  Conflicting package \"{}\" found:", pkg_name);
                 println!("    1. Existing: {}... (from {}, author: {})", &existing_sha[..12.min(existing_sha.len())], source, author);
-                println!("    2. New:      {}... (from github.com/{}/{})", &manifest.sha256[..12.min(manifest.sha256.len())], owner, repo_name);
+                println!("    2. New:      {}... (from github.com/{}/{})", &combined_hash[..12.min(combined_hash.len())], owner, repo_name);
                 println!("  Enter choice (1/2) or 's' to skip:");
 
                 // Read user choice from stdin
@@ -197,7 +199,7 @@ fn install_from_github(repo: &str, packages: &[String]) -> Result<usize> {
                         "2" => {
                             println!("  Installing new version.");
                             // Cache the preference
-                            crate::config::aliases::set_conflict_preference(pkg_name, &manifest.sha256, &format!("github.com/{}/{}", owner, repo_name))?;
+                            crate::config::aliases::set_conflict_preference(pkg_name, &combined_hash, &format!("github.com/{}/{}", owner, repo_name))?;
                             // Continue to install below
                         }
                         _ => {
@@ -242,17 +244,18 @@ fn install_from_github(repo: &str, packages: &[String]) -> Result<usize> {
         }
 
         // Register in installed.json
+        let combined_hash = manifest.combined_hash();
         let mut installed = crate::config::settings::read_installed()?;
         installed.push(crate::config::settings::InstalledEntry {
             name: pkg_name.clone(),
-            version: manifest.version,
+            version: manifest.version.clone(),
             installed: chrono::Local::now().format("%Y-%m-%d").to_string(),
             source: format!("github.com/{}/{}", owner, repo_name),
-            sha256: manifest.sha256,
-            author: manifest.author,
+            sha256: combined_hash,
+            author: manifest.author.clone(),
             dependencies: crate::config::settings::Dependencies {
-                system: manifest.dependencies.system,
-                packages: manifest.dependencies.packages,
+                system: manifest.dependencies.system.clone(),
+                packages: manifest.dependencies.packages.clone(),
             },
         });
         crate::config::settings::write_installed(&installed)?;
