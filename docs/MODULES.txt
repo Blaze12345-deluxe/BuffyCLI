@@ -20,8 +20,10 @@ Purpose:
 
 args.rs:
   CliArgs is a clap derive struct with 25 fields. All flags use long names
-  (e.g., --install) with optional short aliases (-l for --list). The command
-  field uses trailing_var_arg = true to capture BSL command arguments.
+  (e.g., --install) with optional short aliases (-l for --list). Multi-value
+  flags (--repo, --install, --alias) use num_args(1..) to accept multiple
+  arguments. The command field is a positional Vec<String> that captures
+  BSL command arguments.
 
 dispatch.rs:
   execute() is the single entry point. It checks flags in a specific priority
@@ -179,7 +181,8 @@ Implementation details:
   - Local installs use current date as version and "unknown" as author.
 
 Limitations:
-  - No support for installing from git tags or branches (always uses main).
+  - No support for installing from git tags or branches (always uses the
+    repository's default branch, currently 'master' for Buffy-Plugins).
   - No support for package pinning to a specific version.
   - Dependency retry is limited to one attempt.
 

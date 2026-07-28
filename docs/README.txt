@@ -92,10 +92,17 @@ QUICK START
        cargo build --release
        sudo cp target/release/buffy /usr/local/bin/
 
-  2. Install a package:
+  2. Add the plugin repository:
+       buffy --repo https://github.com/Blaze12345-deluxe/Buffy-Plugins
+       (or: buffy --repo add https://github.com/Blaze12345-deluxe/Buffy-Plugins)
+
+  3. Search for available packages:
+       buffy --repo search
+
+  4. Install a package:
        buffy --install pip-env
 
-  3. Run a command:
+  5. Run a command:
        buffy pip-env
 
   4. See all flags:

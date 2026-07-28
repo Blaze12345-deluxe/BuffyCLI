@@ -21,11 +21,15 @@ Priority: MEDIUM
      - Corrupt config file recovery.
      - Package with circular dependencies.
      - Install of package that already exists (update vs skip).
+     - --repo shorthand with various URL formats.
+     - --repo add <url> with multiple values.
+     - --install with multiple package names.
 
   3. Improve error messages:
      - More specific IO error contexts.
      - Better HTTP error messages (status code details).
-     - Suggestion to use "buffy --repo add" when package not found.
+     - Suggestion to use "buffy --repo add <url>" or "buffy --repo <url>"
+       when package not found.
 
 Priority: LOW
 
@@ -33,6 +37,8 @@ Priority: LOW
   5. Add progress bar during long package installations.
   6. Add command completion for installed BSL packages (not just flags).
   7. Add offline verification mode (no network fetch).
+  8. Consider changing Buffy-Plugins default branch from 'master' to
+     'main' to follow modern conventions.
 
 ================================================================================
 COMPLETED TASKS

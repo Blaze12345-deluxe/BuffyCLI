@@ -301,9 +301,9 @@ PACKAGE INSTALL FLOW:
   1. Parse the install source (local, GitHub, configured).
   2. If local: derive name from filename, generate manifest, copy to
      commands/, register.
-  3. If GitHub: fetch index, find package, download files to temp dir,
-     verify SHA, check conflicts, resolve deps, copy to commands/,
-     register.
+  3. If GitHub: fetch index from 'master' branch (not 'main'), find
+     package, download files to temp dir, verify SHA, check conflicts,
+     resolve deps, copy to commands/, register.
   4. If configured: iterate repositories, try each one until found.
 
 RESOLVER FLAT LOOKUP:
@@ -315,6 +315,15 @@ RESOLVER FLAT LOOKUP:
     filesystems).
   - This allows "buffy cd-down" instead of "buffy file-system cd-down".
 
+CLI ARGUMENT PARSING (clap):
+  - Flags using Option<Vec<String>> (--repo, --install, --alias) must use
+    num_args(1..) in their #[arg()] attribute. Without num_args(1..), clap
+    defaults to exactly 1 value, so "buffy --repo add <url>" would only
+    capture "add" and leave the URL as a positional argument.
+  - The command field is a positional Vec<String> without trailing_var_arg.
+    Removing trailing_var_arg was necessary to allow --repo flags to
+    consume multiple values properly.
+
 DISCOVER TOOL DETECTION LIST:
   The discover function checks for 46 tools on $PATH:
     python3, python, pip, pip3, git, docker, docker-compose, node, npm,
@@ -324,7 +333,7 @@ DISCOVER TOOL DETECTION LIST:
     curl, wget, jq, yq, ffmpeg, imagemagick, ssh, tmux, screen
 
 SELF-UPDATE MECHANISM:
-  - Fetches https://api.github.com/repos/BuffyCLI/buffy/releases/latest
+  - Fetches https://api.github.com/repos/Blaze12345-deluxe/BuffyCLI/releases/latest
   - Compares tag_name with current CARGO_PKG_VERSION.
   - Only displays download instructions (does not auto-update the binary).
   - This is by design: auto-updating an executable is risky and requires

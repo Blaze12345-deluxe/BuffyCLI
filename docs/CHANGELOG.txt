@@ -5,6 +5,32 @@
 This file tracks all notable changes to the Buffy CLI project.
 
 ================================================================================
+v0.1.1 -- 2026-07-28
+================================================================================
+
+Bug fix release addressing CLI parsing, URL resolution, and repo management.
+
+Release: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.1
+
+Fixed:
+  - --repo add <url> now properly captures both subcommand and URL.
+    Root cause: Option<Vec<String>> in clap defaults to 1 value without
+    num_args(1..). Now --repo, --install, and --alias all use num_args(1..)
+    to accept multiple arguments correctly.
+  - --repo <url> shorthand works without needing the 'add' subcommand.
+    URLs starting with https://, http://, or github.com/ are auto-detected
+    and added as repositories.
+  - raw.githubusercontent.com URLs now use 'master' branch instead of 'main'
+    to match the Buffy-Plugins repository's default branch.
+  - --repair detects and replaces stale 'BuffyCLI/packages' repository URLs
+    with the current default 'Blaze12345-deluxe/Buffy-Plugins'.
+  - All hardcoded 'BuffyCLI' organization URLs updated to
+    'Blaze12345-deluxe'.
+  - trailing_var_arg removed from command field to fix --repo parsing.
+  - Fixed stray 'e' typo in self_update error path.
+  - Fixed broken doc comment in args.rs (concatenated lines).
+
+================================================================================
 v0.1.0 -- 2026-07-28
 ================================================================================
 
