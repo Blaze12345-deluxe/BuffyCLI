@@ -64,12 +64,12 @@ mod tests {
 
     #[test]
     fn test_github_url() {
-        let source = parse_source("https://github.com/BuffyCLI/packages");
+        let source = parse_source("https://github.com/Blaze12345-deluxe/Buffy-Plugins");
         assert_eq!(
             source,
             InstallSource::GitHub {
-                owner: "BuffyCLI".to_string(),
-                repo: "packages".to_string(),
+                owner: "Blaze12345-deluxe".to_string(),
+                repo: "Buffy-Plugins".to_string(),
             }
         );
     }

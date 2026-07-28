@@ -53,7 +53,7 @@ Packages are the distribution unit. Each package contains one or more .bsl files
 
 Packages are distributed through GitHub repositories. No central registry.
 
-- One official repository by default: `https://github.com/BuffyCLI/packages`
+- One default plugin repository: `https://github.com/Blaze12345-deluxe/Buffy-Plugins`
 - Multiple configured repositories in `repositories.json`
 - Repository aliases for convenience
 - Private repository support via GITHUB_TOKEN

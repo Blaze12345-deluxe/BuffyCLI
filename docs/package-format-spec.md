@@ -154,7 +154,7 @@ Example: an asset at `templates/requirements.txt` is installed to `~/.buffy/comm
         "configs/.gitignore.stub"
     ],
     "license": "MIT",
-    "homepage": "https://github.com/BuffyCLI/packages/tree/main/packages/pip-env"
+    "homepage": "https://github.com/Blaze12345-deluxe/Buffy-Plugins/tree/main/packages/pip-env"
 }
 ```
 
@@ -591,7 +591,7 @@ Use lowercase, single words when possible.
 Every repository should include an `index.json` at its root:
 
 ```
-https://github.com/BuffyCLI/packages/
+https://github.com/Blaze12345-deluxe/Buffy-Plugins/
 ├── index.json
 └── packages/
 ```
@@ -730,7 +730,7 @@ Which version would you like to install? (1/2/q):
 Every Buffy installation ships with one default package repository:
 
 ```
-https://github.com/BuffyCLI/packages
+https://github.com/Blaze12345-deluxe/Buffy-Plugins
 ```
 
 ### 12.2 Multiple Repositories
@@ -739,7 +739,7 @@ Users can configure multiple repositories in `~/.buffy/repositories.json`:
 
 ```json
 [
-    "https://github.com/BuffyCLI/packages",
+    "https://github.com/Blaze12345-deluxe/Buffy-Plugins",
     "https://github.com/ExampleUser/linux-tools",
     "https://github.com/MyName/private-packages"
 ]
@@ -751,7 +751,7 @@ Repositories can be aliased for convenience:
 
 ```json
 {
-    "official": "https://github.com/BuffyCLI/packages",
+    "official": "https://github.com/Blaze12345-deluxe/Buffy-Plugins",
     "community": "https://github.com/BuffyCommunity/packages",
     "myrepo": "https://github.com/MyName/private-packages"
 }
@@ -1098,7 +1098,7 @@ packages/pip-env/
         "packages": []
     },
     "license": "MIT",
-    "homepage": "https://github.com/BuffyCLI/packages/tree/main/packages/pip-env"
+    "homepage": "https://github.com/Blaze12345-deluxe/Buffy-Plugins/tree/main/packages/pip-env"
 }
 ```
 

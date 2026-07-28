@@ -416,10 +416,10 @@ Every Buffy installation ships with one default package repository.
 Example:
 
 ```text
-https://github.com/BuffyCLI/packages
+https://github.com/Blaze12345-deluxe/Buffy-Plugins
 ```
 
-The official repository is searched whenever the user installs a package by name.
+The default repository is searched whenever the user installs a package by name.
 
 Example:
 
@@ -443,7 +443,7 @@ Example:
 
 ```json
 [
-    "https://github.com/BuffyCLI/packages",
+    "https://github.com/Blaze12345-deluxe/Buffy-Plugins",
     "https://github.com/ExampleUser/linux-tools",
     "https://github.com/SomeoneElse/buffy-community"
 ]
@@ -592,7 +592,7 @@ Example:
 
 ```json
 {
-    "official": "https://github.com/BuffyCLI/packages",
+    "official": "https://github.com/Blaze12345-deluxe/Buffy-Plugins",
     "community": "https://github.com/BuffyCommunity/packages",
     "myrepo": "https://github.com/Blaze1234-deluxe/custom-buffy-plugins"
 }

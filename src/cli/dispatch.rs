@@ -246,7 +246,7 @@ fn repair() -> Result<()> {
     match crate::config::settings::read_repositories() {
         Ok(_) => println!("  Repositories file OK."),
         Err(_) => {
-            let default_repos = vec!["https://github.com/BuffyCLI/packages".to_string()];
+            let default_repos = vec!["https://github.com/Blaze12345-deluxe/Buffy-Plugins".to_string()];
             crate::config::settings::write_repositories(&default_repos)?;
             println!("  Repositories file regenerated with defaults.");
             fixed += 1;

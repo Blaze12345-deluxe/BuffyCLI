@@ -87,6 +87,7 @@ pub fn lint_script(source: &str) -> Result<Vec<LintIssue>, BslError> {
             }
             crate::bsl::ast::Statement::Exit => {}
             crate::bsl::ast::Statement::Clear => {}
+            crate::bsl::ast::Statement::SetOutput(_) => {}
         }
     }
 

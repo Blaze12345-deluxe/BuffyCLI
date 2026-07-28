@@ -163,6 +163,36 @@ fn parse_statement(tokens: &[(usize, Token)], pos: &mut usize, line: usize) -> R
         }
         "CLEAR" => Ok(Statement::Clear),
         "EXIT" => Ok(Statement::Exit),
+        "OUTPUT" => {
+            // Runtime output toggle: expect = true/false
+            if *pos >= tokens.len() || !matches!(tokens[*pos].1, Token::Equals) {
+                return Err(BslError::Syntax {
+                    line,
+                    message: "OUTPUT requires = true or = false".to_string(),
+                });
+            }
+            *pos += 1;
+            if *pos >= tokens.len() {
+                return Err(BslError::Syntax {
+                    line,
+                    message: "OUTPUT requires a value after =".to_string(),
+                });
+            }
+            match &tokens[*pos].1 {
+                Token::StringLit(s) if s == "true" => {
+                    *pos += 1;
+                    Ok(Statement::SetOutput(true))
+                }
+                Token::StringLit(s) if s == "false" => {
+                    *pos += 1;
+                    Ok(Statement::SetOutput(false))
+                }
+                _ => Err(BslError::Syntax {
+                    line,
+                    message: "OUTPUT must be true or false".to_string(),
+                }),
+            }
+        }
         _ => Err(BslError::UnknownInstruction {
             line,
             instruction: ident,

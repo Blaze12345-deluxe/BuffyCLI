@@ -22,11 +22,24 @@ buffy --discover
 
 ### Install
 
+#### Option 1: Install from Source (Recommended)
+
 ```bash
-cargo install buffy
+git clone https://github.com/Blaze12345-deluxe/BuffyCLI.git
+cd BuffyCLI
+cargo build --release
+sudo cp target/release/buffy /usr/local/bin/
 ```
 
-Or download a pre-built binary from the [releases page](https://github.com/BuffyCLI/buffy/releases).
+#### Option 2: Cargo Install
+
+```bash
+cargo install --git https://github.com/Blaze12345-deluxe/BuffyCLI.git
+```
+
+#### Option 3: Pre-built Binary
+
+Download a pre-built binary from the [releases page](https://github.com/Blaze12345-deluxe/BuffyCLI/releases).
 
 ### Your First Command
 
@@ -36,7 +49,7 @@ Or download a pre-built binary from the [releases page](https://github.com/Buffy
    buffy --install pip-env
    ```
 
-   This installs the `pip-env` package from the [BuffyCLI/packages](https://github.com/BuffyCLI/packages) repository.
+   This installs the `pip-env` package from the [Blaze12345-deluxe/Buffy-Plugins](https://github.com/Blaze12345-deluxe/Buffy-Plugins) repository.
 
 2. **Run it:**
 
@@ -138,7 +151,7 @@ WRITE "Done!"
 
 Packages are distributed through GitHub repositories. There is no central registry — you configure which repositories to use.
 
-1. **Official repository:** `https://github.com/BuffyCLI/packages` (default)
+1. **Default plugin repository:** `https://github.com/Blaze12345-deluxe/Buffy-Plugins`
 2. **Add more:** `buffy --repo add https://github.com/your-org/packages`
 3. **Search packages:** `buffy --repo search <query>`
 4. **Install:** `buffy --install <package-name>`
@@ -189,13 +202,29 @@ Buffy stores its configuration in `~/.buffy/`:
 
 ## Development
 
+### Prerequisites
+
+- **Rust 1.70+** ([install via rustup](https://rustup.rs/))
+- **Linux** (primary target; macOS secondary; Windows tertiary)
+
 ### Building from Source
 
 ```bash
-git clone https://github.com/BuffyCLI/buffy.git
-cd buffy
+# Clone the repository
+git clone https://github.com/Blaze12345-deluxe/BuffyCLI.git
+cd BuffyCLI
+
+# Build
 cargo build
+
+# Run tests
 cargo test
+
+# Build release binary
+cargo build --release
+
+# Install globally (optional)
+sudo cp target/release/buffy /usr/local/bin/
 ```
 
 ### Running Tests
@@ -233,6 +262,20 @@ The project uses GitHub Actions for CI:
 - Full test suite execution
 - Clippy linting
 - Format check
+
+---
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, development setup, testing workflow, and the pull request process.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for our security policy and vulnerability reporting process.
 
 ---
 

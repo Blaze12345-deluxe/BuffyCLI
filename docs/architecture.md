@@ -329,7 +329,7 @@ package::install::install("pip-env")
        ├──→ config::settings::read_repositories()
        │       │
        │       ▼
-       │   ["https://github.com/BuffyCLI/packages", ...]
+       │    ["https://github.com/Blaze12345-deluxe/Buffy-Plugins", ...]
        │
        ├──→ repository::github::fetch_index(repo_url)
        │       │
@@ -1230,7 +1230,7 @@ BSL runtime errors → Display command, exit code, stderr
 **config.json:**
 ```json
 {
-    "default_repositories": ["https://github.com/BuffyCLI/packages"],
+    "default_repositories": ["https://github.com/Blaze12345-deluxe/Buffy-Plugins"],
     "output_preferences": {
         "color": true,
         "show_progress": true
@@ -1262,7 +1262,7 @@ BSL runtime errors → Display command, exit code, stderr
 **repositories.json:**
 ```json
 [
-    "https://github.com/BuffyCLI/packages",
+    "https://github.com/Blaze12345-deluxe/Buffy-Plugins",
     "https://github.com/ExampleUser/linux-tools"
 ]
 ```

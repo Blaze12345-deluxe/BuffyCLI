@@ -43,11 +43,24 @@ fn tokenize_line(line: &str, line_num: usize) -> Result<Vec<(usize, Token)>, Bsl
         });
     }
 
+    // Get the first word to determine the instruction type
+    let first_word = line.split(|c: char| c == ' ' || c == '\t').next().unwrap_or("");
+    let is_metadata_keyword = matches!(first_word, "VERSION" | "AUTHOR" | "DESCRIPTION" | "OUTPUT");
+
     // Split into identifier and the rest (handling = and space)
-    let (ident, rest) = if let Some(eq_pos) = line.find('=') {
-        let id = line[..eq_pos].trim();
-        let after_eq = line[eq_pos + 1..].trim();
-        (id, Some((true, after_eq)))
+    // Only split on '=' for metadata keywords (to avoid matching '=' inside strings)
+    let (ident, rest) = if is_metadata_keyword {
+        if let Some(eq_pos) = line.find('=') {
+            let id = line[..eq_pos].trim();
+            let after_eq = line[eq_pos + 1..].trim();
+            (id, Some((true, after_eq)))
+        } else if let Some(space_pos) = line.find(|c: char| c == ' ' || c == '\t') {
+            let id = line[..space_pos].trim();
+            let after_space = line[space_pos + 1..].trim();
+            (id, Some((false, after_space)))
+        } else {
+            (line, None)
+        }
     } else if let Some(space_pos) = line.find(|c: char| c == ' ' || c == '\t') {
         let id = line[..space_pos].trim();
         let after_space = line[space_pos + 1..].trim();

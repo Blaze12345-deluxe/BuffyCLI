@@ -1,5 +1,5 @@
 {
-    "default_repositories": ["https://github.com/BuffyCLI/packages"],
+    "default_repositories": ["https://github.com/Blaze12345-deluxe/Buffy-Plugins"],
     "output_preferences": {
         "color": true,
         "show_progress": true

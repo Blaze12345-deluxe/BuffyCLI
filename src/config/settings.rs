@@ -122,7 +122,7 @@ pub fn write_installed(entries: &[InstalledEntry]) -> Result<()> {
 pub fn read_repositories() -> Result<Vec<String>> {
     let path = crate::config::buffy_home::buffy_home().join("repositories.json");
     if !path.exists() {
-        return Ok(vec!["https://github.com/BuffyCLI/packages".to_string()]);
+        return Ok(vec!["https://github.com/Blaze12345-deluxe/Buffy-Plugins".to_string()]);
     }
     let content = fs::read_to_string(&path)?;
     let repos: Vec<String> = serde_json::from_str(&content).map_err(|e| BuffyError::ConfigError {

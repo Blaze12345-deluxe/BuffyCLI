@@ -7,7 +7,7 @@ use std::time::Duration;
 
 /// Executes a parsed BSL script.
 pub fn interpret(script: &BslScript, args: &[String]) -> Result<(), BslError> {
-    let output_enabled = script.get_output_mode();
+    let mut output_enabled = script.get_output_mode();
     let ctx = ExecutionContext {
         args: args.to_vec(),
     };
@@ -37,6 +37,9 @@ pub fn interpret(script: &BslScript, args: &[String]) -> Result<(), BslError> {
             }
             Statement::Exit => {
                 break;
+            }
+            Statement::SetOutput(val) => {
+                output_enabled = *val;
             }
         }
     }

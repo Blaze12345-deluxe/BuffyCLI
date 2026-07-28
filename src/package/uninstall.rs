@@ -10,8 +10,6 @@ pub fn uninstall(name: &str) -> Result<()> {
 
     match pos {
         Some(idx) => {
-            let entry = &installed[idx];
-
             // Check for dependent packages that rely on this one
             let dependents = crate::package::deps::find_dependents(name)?;
             if !dependents.is_empty() {

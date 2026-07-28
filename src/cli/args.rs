@@ -14,7 +14,7 @@
                     buffy --run script.bsl     Run a .bsl file on the fly\n\
                     buffy --list              List installed commands\n\
                     buffy --repo search git   Search packages across repositories",
-    version,
+    disable_version_flag = true,
     arg_required_else_help = false,
 )]
 pub struct CliArgs {

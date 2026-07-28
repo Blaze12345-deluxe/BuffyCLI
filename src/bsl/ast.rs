@@ -32,6 +32,8 @@ pub enum Statement {
     Wait(WaitTarget),
     Clear,
     Exit,
+    /// Toggle command output on/off at runtime (OUTPUT = true/false)
+    SetOutput(bool),
 }
 
 #[derive(Debug, Clone, PartialEq)]

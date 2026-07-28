@@ -299,7 +299,7 @@ mod tests {
         let _lock = HOME_LOCK.lock().unwrap();
         let (_tmp, _) = with_temp_home();
 
-        // No repos configured (default is BuffyCLI/packages, which doesn't exist in test)
+        // No repos configured (default is Blaze12345-deluxe/Buffy-Plugins, which doesn't exist in test)
         // Since the default repo is unreachable, search should return empty results
         let results = search_across_repositories("test");
         assert!(results.is_ok());
