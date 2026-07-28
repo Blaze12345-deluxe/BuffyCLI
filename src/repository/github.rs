@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 /// Fetches the repository index.json from a GitHub repository (always from network).
 pub fn fetch_index(owner: &str, repo: &str) -> Result<RepositoryIndex> {
     let url = format!(
-        "https://raw.githubusercontent.com/{}/{}/main/index.json",
+        "https://raw.githubusercontent.com/{}/{}/master/index.json",
         owner, repo
     );
     let response = ureq::get(&url).call().map_err(|e| BuffyError::RepositoryConnection {
@@ -170,7 +170,7 @@ pub fn find_across_repositories(name: &str) -> Result<(String, crate::repository
 /// Downloads a specific package file from a GitHub repository.
 pub fn download_file(owner: &str, repo: &str, file_path: &str, target: &Path) -> Result<()> {
     let url = format!(
-        "https://raw.githubusercontent.com/{}/{}/main/{}",
+        "https://raw.githubusercontent.com/{}/{}/master/{}",
         owner, repo, file_path
     );
     let response = ureq::get(&url).call().map_err(|e| BuffyError::RepositoryConnection {
