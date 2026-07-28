@@ -30,6 +30,8 @@ buffy/
     main.rs               Entry point. Calls buffy::run().
     lib.rs                Library root. run(), init_logging(), module exports.
     error.rs              BuffyError enum with thiserror derives.
+                          Added AmbiguousCommand in v0.1.2 for flat-lookup
+                          ambiguity resolution.
 
     cli/                  CLI parsing and command dispatch.
       mod.rs              Module root.
@@ -210,6 +212,7 @@ Specific module imports:
   User types "buffy pip-env create project"
     -> main() calls lib::run()
       -> ensure_directories() creates ~/.buffy/ if needed
+      -> ensure_bundled_packages() installs pip-env on first run
       -> init_logging() opens daily log file
       -> CliArgs::parse() parses arguments
       -> cli::dispatch::execute() routes to handler
@@ -305,8 +308,10 @@ The project uses two error types:
 
 BuffyError (src/error.rs):
   Top-level errors for CLI dispatch and package management. Each variant
-  includes a user-facing tip in its display message. Common variants:
+  includes a user-facing tip in its display message.  Common variants:
     CommandNotFound        - suggests --list or --repo search
+    AmbiguousCommand       - multiple packages provide the same .bsl filename
+                             (dispatch shows a numbered selection prompt)
     PackageNotFound        - suggests --repo search or --repo add <url>
                              (or just --repo <url> as shorthand)
     ConfigError            - suggests --repair or --reset

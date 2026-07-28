@@ -277,6 +277,15 @@ The flat lookup (priority 5) allows running commands by their name alone
 without specifying the package directory:
   buffy cd-down    (instead of buffy file-system cd-down)
 
+If multiple packages have a .bsl file with the same name, the flat lookup
+will display a numbered selection prompt and ask you to choose:
+  $ buffy pip-upgrade
+  Multiple packages provide "pip-upgrade":
+    1. pip-upgrade (from package: python-tools)
+    2. pip-upgrade (from package: dev-tools)
+
+  Enter choice (1-2): 1
+
 Alias resolution happens BEFORE directory walking:
   If "ve" is aliased to "pip-env", then:
     buffy ve create  =>  buffy pip-env create

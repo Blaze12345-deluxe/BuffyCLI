@@ -9,18 +9,12 @@ version of Buffy.
 1.  MULTIPLE FLAT LOOKUP MATCHES PICK FIRST RESULT SILENTLY
 ================================================================================
 
-Severity: Low
-Status: Accepted limitation
+Severity: Fixed in v0.1.2
+Status: Resolved
 
-If two packages both have a .bsl file with the same name (e.g., both
-"file-system" and "my-utils" have "cd-down.bsl"), the flat lookup will
-return the first match found by the filesystem. The user is not informed
-that multiple matches exist.
-
-Workaround: Use the full package path: "buffy file-system cd-down".
-
-Fix planned: Add a confirmation prompt when multiple flat-lookup matches
-are found.
+Previously, if two packages both had a .bsl file with the same name, the
+flat lookup would silently return the first match. Now a numbered selection
+prompt lists each match with its package origin and asks the user to choose.
 
 
 ================================================================================

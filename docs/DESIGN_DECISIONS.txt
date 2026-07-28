@@ -212,10 +212,14 @@ Reasoning:
     so it doesn't interfere with multi-arg resolution.
 
 Trade-off:
-  - If multiple packages have the same filename, the first match is returned
-    silently.
   - Slightly more filesystem I/O on failed resolution (scanning all
     directories).
-  - No feedback to the user if multiple matches exist (no prompt to choose).
+
+Update (v0.1.2):
+  Multiple matches now produce a numbered selection prompt instead of
+  silently returning the first match. When 2+ packages provide a .bsl file
+  with the same name, the resolver returns AmbiguousCommand, and the
+  dispatch handler prints each match with its package origin and asks the
+  user to choose.
 
 --- End of DESIGN_DECISIONS.txt ---

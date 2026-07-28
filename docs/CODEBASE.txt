@@ -48,6 +48,8 @@ Key types:
     BslSyntax            - BSL parse error with path, line, message.
     BslRuntime           - Runtime execution error with command, exit code, stderr.
     UnknownInstruction   - Invalid BSL instruction with line number.
+    AmbiguousCommand     - Multiple packages provide the same .bsl command
+                           name (dispatch shows numbered selection prompt).
     CommandNotFound      - Unresolvable BSL command.
     PackageNotFound      - Package not in any repository.
     PackageVerificationFailed - SHA-256 mismatch.
@@ -156,7 +158,9 @@ Key function:
              Try <arg>/<arg>.bsl (directory name match)
              Try first .bsl alphabetically in <arg>/ directory
              Try flat lookup across all package directories
-             Return CommandNotFound error
+             If 0 matches: Return CommandNotFound
+             If 1 match:   Return it
+             If 2+ matches: Return AmbiguousCommand with match list
            Else:
              Walk into <arg> subdirectory
 

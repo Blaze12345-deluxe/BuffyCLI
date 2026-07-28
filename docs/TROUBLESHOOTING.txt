@@ -13,14 +13,15 @@ Problem:
   -> Command not found: pip-env
 
 Possible causes:
-  1. The package is not installed. Run "buffy --list" to see installed
-     commands.
+  1. The package is not installed.
   2. The command name is misspelled.
   3. The command is installed but not in ~/.buffy/commands/.
 
 Solutions:
-  - Install the package: buffy --install pip-env
-  - Search for packages: buffy --repo search pip-env
+  - pip-env ships pre-installed with Buffy v0.1.2+. Try "buffy pip-env"
+    directly -- no explicit install needed.
+  - For other packages, install: buffy --install <package-name>
+  - Search for packages: buffy --repo search <query>
   - List installed commands: buffy --list
 
 
@@ -107,17 +108,20 @@ Solutions:
 
 
 ================================================================================
-6.  NAME CONFLICT
+6.  NAME CONFLICT (AMBIGUOUS COMMAND)
 ================================================================================
 
 Problem:
-  buffy pip-env
-  -> Multiple packages found for "pip-env"
+  buffy pip-upgrade
+  -> Multiple packages provide "pip-upgrade"
+    1. pip-upgrade (from package: python-tools)
+    2. pip-upgrade (from package: dev-tools)
 
 Solution:
-  - Select the preferred version when prompted.
-  - The choice is cached in ~/.buffy/aliases.json.
-  - Change the preference: buffy --alias resolve pip-env
+  - Enter the number of the package you want to run.
+  - Use the full package path to disambiguate: "buffy python-tools pip-upgrade"
+  - This prompt only appears when multiple packages share a .bsl filename.
+    Single matches run automatically without prompting.
 
 
 ================================================================================

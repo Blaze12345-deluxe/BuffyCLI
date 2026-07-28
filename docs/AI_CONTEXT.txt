@@ -63,7 +63,8 @@ Phase 4 - CLI and Resolver:
   - Clap-based CLI argument parsing with all flags.
   - Directory-walking command resolver with 5 priority levels.
   - Alias resolution before directory walk.
-  - Flat lookup fallback for single-arg commands (buffy cd-down).
+  - Flat lookup fallback for single-arg commands with ambiguity resolution
+    (buffy cd-down; prompt on 2+ matches).
 
 Phase 5 - Repository Manager:
   - GitHub repository integration via raw.githubusercontent.com.
@@ -171,8 +172,8 @@ Why the flat lookup fallback in the resolver?
   just wanted to navigate up a directory. The flat lookup scans all package
   directories for a .bsl file that matches the command name, so "buffy
   cd-down" works without specifying the package name. If multiple packages
-  have the same filename, the first match is returned (alphabetically by
-  package directory).
+  have the same filename, the user is shown a numbered selection prompt
+  (as of v0.1.2). Previously the first match was returned silently.
 
 Why no central package registry?
   GitHub repositories are the distribution mechanism. This avoids needing to
@@ -310,10 +311,19 @@ RESOLVER FLAT LOOKUP:
   - Only triggers when at the commands_dir root (not inside a subdirectory).
   - Scans all subdirectories of commands/ for a matching {arg}.bsl file.
   - If exactly one match, returns it.
-  - If multiple matches, returns the first one (deterministic based on
-    filesystem readdir order, which is roughly alphabetical on most
-    filesystems).
+  - If multiple matches, returns AmbiguousCommand error with match list.
+  - AmbiguousCommand is caught by dispatch handler which shows a numbered
+    selection prompt with each match's package origin.
   - This allows "buffy cd-down" instead of "buffy file-system cd-down".
+  - As of v0.1.2, ambiguity no longer silently picks the first match.
+
+BUNDLED PACKAGES (v0.1.2):
+  - pip-env.bsl is embedded at compile time via include_str!("../../pip-env.bsl").
+  - ensure_bundled_packages() in buffy_home.rs runs on every startup.
+  - Checks disk + registry before installing (idempotent).
+  - Writes to ~/.buffy/commands/pip-env/ with package.json.
+  - Source field in installed.json is "bundled".
+  - Non-destructive: skips if pip-env is already installed from any source.
 
 CLI ARGUMENT PARSING (clap):
   - Flags using Option<Vec<String>> (--repo, --install, --alias) must use

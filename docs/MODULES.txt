@@ -69,14 +69,19 @@ tree.rs:
   file matching the command name. This allows "buffy cd-down" to find
   "file-system/cd-down.bsl" without specifying the package name.
 
+  If multiple packages provide a .bsl file with the same name, the resolver
+  returns an AmbiguousCommand error with a list of (package_name, path)
+  matches. The dispatch handler catches this, displays a numbered prompt,
+  and lets the user select which package's command to run.
+
 Implementation details:
   - Alias resolution happens BEFORE directory walking, not during.
   - Only the first argument is checked for alias expansion.
   - The flat lookup only triggers when at the commands_dir root.
-  - If multiple files match the flat lookup, the first one is returned.
+  - Single matches are returned automatically (no prompt needed).
+  - AmbiguousCommand includes match info used by dispatch for the prompt.
 
 Limitations:
-  - Does not handle ambiguous flat-lookup matches (picks the first one).
   - No caching of directory structure.
   - No wildcard or glob matching in command arguments.
 
@@ -239,7 +244,9 @@ settings.rs:
 
 buffy_home.rs:
   Functions for ~/.buffy/ subdirectory paths. ensure_directories() creates
-  all required directories on startup. Exports TEST_HOME_LOCK for test
+  all required directories on startup. ensure_bundled_packages() installs
+  pip-env from an embedded resource (include_str!) on first run, skipping
+  if already installed from any source. Exports TEST_HOME_LOCK for test
   serialization.
 
 aliases.rs:

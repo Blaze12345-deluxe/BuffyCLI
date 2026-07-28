@@ -118,11 +118,18 @@ COMMAND RESOLUTION:
   Commands are resolved by walking ~/.buffy/commands/ using CLI arguments as
   path segments. Resolution priority: exact file -> index.bsl -> directory
   name -> first alphabetically -> flat lookup across packages -> error.
+  If the flat lookup finds multiple matches (same .bsl name in different
+  packages), a numbered selection prompt is shown.
 
 NAME CONFLICT RESOLUTION:
-  If two packages share the same name from different authors (different SHA),
-  Buffy detects the conflict, prompts the user to choose, and caches the
-  choice in aliases.json.
+  If two packages share the same package name from different authors
+  (different SHA), Buffy detects the conflict at install time, prompts the
+  user to choose, and caches the choice in aliases.json.
+
+BUNDLED PACKAGES:
+  Starting in v0.1.2, pip-env ships pre-installed with Buffy. The script
+  is embedded at compile time and installed automatically on first run.
+  No explicit --install command is needed.
 
 
 ================================================================================
