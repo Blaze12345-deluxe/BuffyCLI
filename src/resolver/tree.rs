@@ -78,8 +78,26 @@ pub fn resolve(args: &[String]) -> Result<PathBuf> {
                     if matches.len() == 1 {
                         return Ok(matches.swap_remove(0));
                     } else if matches.len() > 1 {
-                        // Multiple matches: return the first one
-                        return Ok(matches.swap_remove(0));
+                        // Multiple matches: let the user choose
+                        let match_info: Vec<(String, String)> = matches.iter().map(|p| {
+                            let pkg_name = p.parent()
+                                .and_then(|p| p.file_name())
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("unknown")
+                                .to_string();
+                            (pkg_name, p.to_string_lossy().to_string())
+                        }).collect();
+
+                        let detail = match_info.iter()
+                            .map(|(pkg, _)| pkg.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ");
+
+                        return Err(BuffyError::AmbiguousCommand {
+                            command: arg.to_string(),
+                            matches: match_info,
+                            detail,
+                        });
                     }
                 }
             }

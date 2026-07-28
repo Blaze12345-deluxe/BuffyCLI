@@ -759,7 +759,34 @@ fn generate_completion(shell: String) -> Result<()> {
 }
 
 fn execute_bsl_command(command: Vec<String>) -> Result<()> {
-    let path = crate::resolver::tree::resolve(&command)?;
+    let path = match crate::resolver::tree::resolve(&command) {
+        Ok(path) => path,
+        Err(crate::error::BuffyError::AmbiguousCommand { command: cmd, matches, .. }) => {
+            eprintln!("Multiple packages provide \"{}\":", cmd);
+            for (i, (pkg, _)) in matches.iter().enumerate() {
+                eprintln!("  {}. {} (from package: {})", i + 1, cmd, pkg);
+            }
+            eprintln!();
+            eprint!("Enter choice (1-{}): ", matches.len());
+            std::io::Write::flush(&mut std::io::stderr()).ok();
+
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input).ok();
+            let choice: usize = input.trim().parse().unwrap_or(0);
+
+            if choice >= 1 && choice <= matches.len() {
+                let path = std::path::PathBuf::from(&matches[choice - 1].1);
+                if path.exists() {
+                    path
+                } else {
+                    return Err(crate::error::BuffyError::CommandNotFound { command: cmd });
+                }
+            } else {
+                return Err(crate::error::BuffyError::CommandNotFound { command: cmd });
+            }
+        }
+        Err(e) => return Err(e),
+    };
     let source = std::fs::read_to_string(&path)?;
     let tokens = crate::bsl::lexer::tokenize(&source)
         .map_err(|e| crate::error::BuffyError::BslSyntax { path: path.to_string_lossy().to_string(), line: 0, message: e.to_string() })?;

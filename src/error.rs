@@ -22,6 +22,15 @@ pub enum BuffyError {
     #[error("Command not found: `{command}`\n  Tip: Use `buffy --list` to see installed commands, or `buffy --repo search {command}` to find packages")]
     CommandNotFound { command: String },
 
+    #[error("Multiple packages provide `{command}`: {detail}\n  Tip: Specify the package name, e.g. `buffy <package> {command}`")]
+    AmbiguousCommand {
+        command: String,
+        /// Human-readable list of (package_name, path) pairs
+        matches: Vec<(String, String)>,
+        /// Human-readable summary for the error message
+        detail: String,
+    },
+
     #[error("Package `{name}` not found in any repository\n  Tip: Use `buffy --repo search {name}` across repositories, or `buffy --repo add <url>` to add more repositories")]
     PackageNotFound { name: String },
 
