@@ -92,6 +92,44 @@ fn test_resolve_first_alphabetically() {
 }
 
 #[test]
+fn test_resolve_flat_lookup_fallback() {
+    let _lock = HOME_LOCK.lock().unwrap();
+    let (tmp, cmds) = setup();
+    // Create a package directory with a uniquely-named .bsl file
+    let pkg_dir = cmds.join("file-system");
+    std::fs::create_dir_all(&pkg_dir).unwrap();
+    std::fs::write(pkg_dir.join("cd-down.bsl"), "WRITE \"down\"\nEXIT").unwrap();
+
+    // Resolve by flat name (not by package path)
+    let args = vec!["cd-down".to_string()];
+    let result = buffy::resolver::tree::resolve(&args);
+    assert!(result.is_ok(), "Flat lookup should find cd-down.bsl: {:?}", result);
+    let path = result.unwrap();
+    assert!(path.ends_with("cd-down.bsl"), "Should resolve to cd-down.bsl, got {:?}", path);
+}
+
+#[test]
+fn test_resolve_flat_lookup_under_package() {
+    let _lock = HOME_LOCK.lock().unwrap();
+    let (tmp, cmds) = setup();
+    // Create two packages with different .bsl files
+    let pkg1 = cmds.join("file-system");
+    std::fs::create_dir_all(&pkg1).unwrap();
+    std::fs::write(pkg1.join("cd-down.bsl"), "WRITE \"down\"\nEXIT").unwrap();
+
+    let pkg2 = cmds.join("git-flow");
+    std::fs::create_dir_all(&pkg2).unwrap();
+    std::fs::write(pkg2.join("git-tag.bsl"), "WRITE \"tag\"\nEXIT").unwrap();
+
+    // Full path should still work
+    let args = vec!["file-system".to_string(), "cd-down".to_string()];
+    let result = buffy::resolver::tree::resolve(&args);
+    assert!(result.is_ok());
+    let path = result.unwrap();
+    assert!(path.ends_with("cd-down.bsl"), "Full path should still resolve, got {:?}", path);
+}
+
+#[test]
 fn test_resolve_command_not_found() {
     let _lock = HOME_LOCK.lock().unwrap();
     let (tmp, cmds) = setup();

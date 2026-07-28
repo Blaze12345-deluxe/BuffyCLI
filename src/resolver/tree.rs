@@ -5,7 +5,7 @@ use crate::error::{BuffyError, Result};
 /// Aliases are resolved first so "ve" becomes "pip-env" before directory lookup.
 pub fn resolve(args: &[String]) -> Result<PathBuf> {
     let commands_dir = crate::config::buffy_home::commands_dir();
-    let mut current_dir = commands_dir;
+    let mut current_dir = commands_dir.clone();
 
     // Resolve aliases for the first argument
     let resolved_args: Vec<String> = if let Some(first) = args.first() {
@@ -55,6 +55,32 @@ pub fn resolve(args: &[String]) -> Result<PathBuf> {
                 bsl_files.sort_by_key(|e| e.file_name());
                 if let Some(first) = bsl_files.into_iter().next() {
                     return Ok(first.path());
+                }
+            }
+
+            // Flat lookup fallback: scan all package subdirectories for a .bsl file
+            // matching the command name (e.g., "cd-down" -> commands/*/cd-down.bsl)
+            if current_dir == commands_dir {
+                if let Ok(entries) = std::fs::read_dir(&commands_dir) {
+                    let mut matches: Vec<_> = entries
+                        .filter_map(|e| e.ok())
+                        .filter(|e| e.path().is_dir())
+                        .filter_map(|dir| {
+                            let candidate = dir.path().join(format!("{}.bsl", arg));
+                            if candidate.exists() {
+                                Some(candidate)
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+
+                    if matches.len() == 1 {
+                        return Ok(matches.swap_remove(0));
+                    } else if matches.len() > 1 {
+                        // Multiple matches: return the first one
+                        return Ok(matches.swap_remove(0));
+                    }
                 }
             }
 
