@@ -1,0 +1,754 @@
+# Buffy Script Language (BSL) Specification
+
+### Version 1.0
+
+## Overview
+
+The Buffy Script Language (BSL) is a lightweight scripting language designed specifically for the **Buffy CLI Automation Framework**.
+
+Unlike Bash or Python, BSL is **not** a general-purpose programming language. It is a simple, structured language interpreted by the Buffy runtime. Its purpose is to allow anyone to create new Buffy commands without needing programming experience.
+
+Each BSL file represents one executable command.
+
+For example:
+
+```bash
+buffy pip-env
+```
+
+causes Buffy to locate the matching BSL file and execute every instruction in order.
+
+---
+
+# Design Goals
+
+BSL has the following goals:
+
+* Extremely easy to learn.
+* Human readable.
+* Safe to execute.
+* Consistent.
+* Easy to parse.
+* Platform-independent where possible.
+* Modular.
+* Extendable without breaking existing scripts.
+
+---
+
+# File Extension
+
+All Buffy scripts should use the extension:
+
+```
+.bsl
+```
+
+Examples:
+
+```
+module.bsl
+
+docker.bsl
+
+restart.bsl
+
+compose-up.bsl
+```
+
+---
+
+# Folder Structure
+
+Commands are determined entirely by their location.
+
+Example:
+
+```
+commands/
+
+pip-env/
+    module.bsl
+
+restart/
+    docker.bsl
+
+docker/
+    compose/
+        up.bsl
+
+system/
+    update/
+        apt.bsl
+```
+
+Running
+
+```
+buffy pip-env
+```
+
+loads
+
+```
+commands/pip-env/module.bsl
+```
+
+Running
+
+```
+buffy restart docker
+```
+
+loads
+
+```
+commands/restart/docker.bsl
+```
+
+Running
+
+```
+buffy docker compose up
+```
+
+loads
+
+```
+commands/docker/compose/up.bsl
+```
+
+No NAME field is required because the command path is inferred from the file's location.
+
+---
+
+# Execution Model
+
+When Buffy executes a script it performs the following steps:
+
+1. Parse the script.
+2. Ignore comments.
+3. Read metadata.
+4. Validate syntax.
+5. Execute each instruction from top to bottom.
+6. Stop immediately if a fatal error occurs.
+7. Return control to the user's terminal.
+
+Execution is always sequential unless future language features introduce parallel execution.
+
+---
+
+# Comments
+
+Comments begin with:
+
+```
+//
+```
+
+Everything after the two slashes is ignored.
+
+Example:
+
+```bsl
+// Create virtual environment
+
+WRITE "Hello"
+```
+
+---
+
+# Metadata
+
+Metadata configures the behaviour of the script.
+
+Metadata must appear before executable instructions.
+
+Example:
+
+```bsl
+VERSION = "1.0"
+
+DESCRIPTION = "Creates a Python virtual environment"
+
+AUTHOR = "Reza"
+
+OUTPUT = false
+```
+
+## VERSION
+
+```
+VERSION = "1.0.0"
+```
+
+Used by the package manager.
+
+---
+
+## DESCRIPTION
+
+```
+DESCRIPTION = "Creates a virtual environment"
+```
+
+Displayed by:
+
+```
+buffy info pip-env
+```
+
+---
+
+## AUTHOR
+
+```
+AUTHOR = "John Smith"
+```
+
+Displayed by Buffy information commands.
+
+---
+
+## OUTPUT
+
+```
+OUTPUT = true
+
+OUTPUT = false
+```
+
+Controls terminal output.
+
+### OUTPUT = true
+
+Every RUN command behaves like a normal terminal.
+
+Example:
+
+```
+RUN "ls"
+```
+
+prints
+
+```
+Desktop
+Downloads
+Documents
+```
+
+---
+
+### OUTPUT = false
+
+Standard output is hidden.
+
+Errors are still displayed.
+
+This is the recommended default.
+
+---
+
+# Instructions
+
+Instructions execute actions.
+
+Each instruction occupies one line.
+
+---
+
+## WRITE
+
+Displays text.
+
+Example:
+
+```bsl
+WRITE "Hello World"
+```
+
+Output:
+
+```
+Hello World
+```
+
+---
+
+## RUN
+
+Executes a terminal command.
+
+Example:
+
+```bsl
+RUN "python3 -m venv .venv"
+```
+
+The Buffy runtime executes the command exactly as written.
+
+If OUTPUT is disabled the command still runs, but stdout is hidden unless an error occurs.
+
+---
+
+## CLEAR
+
+Clears the user's terminal.
+
+```
+CLEAR
+```
+
+Equivalent to
+
+```
+clear
+```
+
+---
+
+## WAIT
+
+Pause execution.
+
+```
+WAIT 5
+```
+
+Waits five seconds.
+
+or
+
+```
+WAIT "Press ENTER to continue..."
+```
+
+Waits until Enter is pressed.
+
+---
+
+## EXIT
+
+Immediately stops the script.
+
+```
+EXIT
+```
+
+No remaining instructions execute.
+
+---
+
+# Variables
+
+Variables are expanded before execution.
+
+Example:
+
+```
+WRITE "${HOME}"
+```
+
+might become
+
+```
+/home/reza
+```
+
+---
+
+## Built-in Variables
+
+```
+${HOME}
+
+${USER}
+
+${PWD}
+
+${TEMP}
+
+${DATE}
+
+${TIME}
+```
+
+---
+
+## Command Arguments
+
+Arguments supplied after the Buffy command become numbered variables.
+
+Example:
+
+```
+buffy make-folder Test
+```
+
+Inside the script
+
+```
+${1}
+```
+
+contains
+
+```
+Test
+```
+
+Example:
+
+```
+RUN "mkdir ${1}"
+```
+
+becomes
+
+```
+mkdir Test
+```
+
+---
+
+Example
+
+```
+buffy copy file1.txt file2.txt
+```
+
+```
+${1} = file1.txt
+
+${2} = file2.txt
+```
+
+---
+
+# Future Variables
+
+Additional variables may include
+
+```
+${HOSTNAME}
+
+${OS}
+
+${CPU}
+
+${ARCH}
+
+${USERNAME}
+
+${SHELL}
+
+${BUFFY_VERSION}
+```
+
+---
+
+# File Operations
+
+Future native instructions should avoid requiring shell commands.
+
+Examples:
+
+```
+CREATE "file.txt"
+
+DELETE "file.txt"
+
+COPY "file1" "file2"
+
+MOVE "old" "new"
+
+MKDIR "folder"
+
+APPEND ".gitignore" ".venv/"
+
+DOWNLOAD "https://..."
+
+EXTRACT "archive.zip"
+
+CHMOD "+x" "script.sh"
+```
+
+Native instructions are preferred over RUN where possible because Buffy can validate them before execution.
+
+---
+
+# Conditional Execution
+
+Future versions may support:
+
+```
+IF_EXISTS ".git"
+
+WRITE "Git repository detected."
+
+ENDIF
+```
+
+```
+IF_NOT_EXISTS ".venv"
+
+RUN "python3 -m venv .venv"
+
+ENDIF
+```
+
+---
+
+# Loops
+
+Example syntax:
+
+```
+FOREACH "*.mp4"
+
+RUN "ffmpeg ..."
+
+END
+```
+
+---
+
+# User Input
+
+```
+ASK "Project Name"
+```
+
+Stores the user's response in
+
+```
+${INPUT}
+```
+
+---
+
+# Script Example
+
+```
+VERSION = "1.0"
+
+DESCRIPTION = "Creates a Python virtual environment"
+
+AUTHOR = "Buffy"
+
+OUTPUT = false
+
+WRITE "Creating virtual environment..."
+
+RUN "python3 -m venv .venv"
+
+WRITE "Upgrading pip..."
+
+RUN ".venv/bin/pip install --upgrade pip"
+
+WRITE "Checking Python version..."
+
+RUN ".venv/bin/python --version"
+
+WRITE "Done."
+```
+
+---
+
+# Command Resolution
+
+Buffy resolves commands by walking the directory tree using each command-line argument.
+
+Example:
+
+```
+buffy docker compose up
+```
+
+Arguments:
+
+```
+docker
+
+compose
+
+up
+```
+
+Resolution:
+
+```
+commands/
+
+docker/
+
+compose/
+
+up.bsl
+```
+
+If no matching file exists, Buffy displays an error.
+
+Example:
+
+```
+Command not found.
+
+docker compose up
+```
+
+---
+
+# Package System
+
+Modules are distributed as packages.
+
+```
+buffy install pip-env
+```
+
+Downloads
+
+```
+pip-env
+```
+
+from the official Buffy package repository.
+
+The package is verified and installed into
+
+```
+commands/
+```
+
+without requiring manual configuration.
+
+---
+
+# Package Structure
+
+Example:
+
+```
+pip-env/
+
+package.json
+
+commands/
+
+README.md
+
+LICENSE
+```
+
+---
+
+# Package Metadata
+
+Example
+
+```json
+{
+    "name": "pip-env",
+    "version": "1.2.0",
+    "author": "Buffy Team",
+    "description": "Creates Python virtual environments",
+    "dependencies": [
+        "python"
+    ]
+}
+```
+
+---
+
+# Runtime Responsibilities
+
+The Buffy executable should only:
+
+* Parse command-line arguments.
+* Locate the correct script.
+* Parse BSL.
+* Validate syntax.
+* Expand variables.
+* Execute instructions.
+* Handle package installation.
+* Display errors.
+* Return control to the terminal.
+
+The runtime should **not** contain hard-coded commands.
+
+Every feature should be implemented as a BSL module whenever possible.
+
+---
+
+# Error Handling
+
+If a RUN instruction exits with a non-zero status, Buffy should:
+
+* Display the command that failed.
+* Display the exit code.
+* Display stderr output.
+* Stop executing the script unless future versions support error-handling constructs.
+
+Example:
+
+```
+Error
+
+Command:
+
+python3 -m venv .venv
+
+Exit Code:
+
+1
+```
+
+---
+
+# Security
+
+BSL is intentionally limited.
+
+The interpreter should:
+
+* Validate every instruction before execution.
+* Reject malformed syntax.
+* Prevent unknown instructions.
+* Prevent metadata from appearing after executable instructions.
+* Keep variables isolated to the current execution.
+* Never execute comments.
+
+---
+
+# Future Features
+
+Planned language features include:
+
+* IF / ELSE / ENDIF
+* SWITCH statements
+* FOR loops
+* FOREACH loops
+* Functions
+* User-defined variables
+* Imports
+* Package dependencies
+* Background execution
+* Parallel execution
+* Progress bars
+* Native file operations
+* Native networking
+* JSON parsing
+* Environment profiles
+* Script linting
+* Shell auto-completion
+* Digital package signatures
+* Package publishing
+* Local package repositories
+* Module version pinning
+
+---
+
+# Design Philosophy
+
+BSL is designed to be a simple automation language rather than a traditional scripting language. Users should be able to open a `.bsl` file and understand exactly what it does with little or no programming knowledge. By keeping the language declarative, strictly validated, and modular, Buffy can provide predictable behaviour, helpful error messages, and a robust package ecosystem while remaining lightweight and easy to extend.

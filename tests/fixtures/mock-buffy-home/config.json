@@ -1,0 +1,12 @@
+{
+    "default_repositories": ["https://github.com/BuffyCLI/packages"],
+    "output_preferences": {
+        "color": true,
+        "show_progress": true
+    },
+    "update_settings": {
+        "check_on_startup": true,
+        "auto_update": false
+    },
+    "package_verification": true
+}

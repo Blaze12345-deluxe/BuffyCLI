@@ -1,0 +1,665 @@
+# Installation System
+
+## Buffy Home Directory
+
+Buffy stores all of its data inside a hidden directory located in the user's home directory.
+
+```text
+~/.buffy/
+```
+
+This directory contains everything Buffy needs to operate.
+
+Example layout:
+
+```text
+~/.buffy/
+
+commands/
+packages/
+cache/
+logs/
+config.json
+aliases.json
+installed.json
+repositories.json
+```
+
+### commands/
+
+Contains every installed `.bsl` command.
+
+```text
+~/.buffy/commands/
+
+pip-env/
+    module.bsl
+
+restart/
+    docker.bsl
+
+docker/
+    compose/
+        up.bsl
+```
+
+---
+
+### packages/
+
+Contains package metadata used by the package manager.
+
+---
+
+### cache/
+
+Temporary downloads.
+
+These files may be safely deleted.
+
+---
+
+### logs/
+
+Execution logs.
+
+Example:
+
+```text
+2026-07-27.log
+```
+
+---
+
+### config.json
+
+Stores Buffy configuration.
+
+Example settings include:
+
+* Default repositories
+* Output preferences
+* Update settings
+* Package verification options
+
+---
+
+### aliases.json
+
+Stores all user-defined aliases.
+
+---
+
+### installed.json
+
+Tracks every installed package.
+
+Example:
+
+```json
+{
+    "pip-env": {
+        "version": "1.0.0",
+        "installed": "2026-07-27",
+        "source": "official"
+    },
+    "docker-tools": {
+        "version": "2.4.1",
+        "installed": "2026-07-27",
+        "source": "local"
+    }
+}
+```
+
+---
+
+# Installing Packages
+
+Buffy supports installing packages from two sources:
+
+1. Official GitHub repositories.
+2. Local `.bsl` files.
+
+---
+
+## Installing from GitHub
+
+Syntax:
+
+```bash
+buffy install <package-name>
+```
+
+Example:
+
+```bash
+buffy install pip-env
+```
+
+Buffy will:
+
+1. Read the configured package repository.
+2. Download the package.
+3. Verify the package.
+4. Extract the files.
+5. Install them into:
+
+```text
+~/.buffy/commands/
+```
+
+6. Register the package in `installed.json`.
+7. Report success.
+
+Example output:
+
+```text
+Installing "pip-env"...
+
+Downloading package...
+Verifying package...
+Installing...
+Done.
+
+Package installed successfully.
+```
+
+---
+
+## Official Repository
+
+By default, Buffy downloads packages from the official GitHub package repository.
+
+The repository layout is expected to be:
+
+```text
+packages/
+
+pip-env/
+
+restart/
+
+docker/
+
+git/
+
+python/
+
+...
+```
+
+Each package contains:
+
+```text
+package.json
+commands/
+README.md
+LICENSE
+```
+
+The repository URL is configurable through `config.json`, allowing users to point Buffy at their own package repository if desired.
+
+---
+
+# Installing from a Local File
+
+Packages can also be installed directly from the current working directory.
+
+Syntax:
+
+```bash
+buffy install ./pip-env.bsl
+```
+
+or
+
+```bash
+buffy install ./restart/docker.bsl
+```
+
+The `./` prefix explicitly tells Buffy that the package should be loaded from the local filesystem rather than downloaded from a repository.
+
+## Requirements
+
+The user **must** be inside the directory containing the referenced file (or provide a valid relative path beginning with `./`).
+
+For example:
+
+```text
+Downloads/
+
+pip-env.bsl
+```
+
+Running:
+
+```bash
+cd Downloads
+
+buffy install ./pip-env.bsl
+```
+
+works correctly.
+
+Running:
+
+```bash
+buffy install ./pip-env.bsl
+```
+
+from another directory will fail because the file cannot be found.
+
+Buffy will never search the entire filesystem for local packages.
+
+---
+
+## Local Installation Process
+
+When installing a local package Buffy will:
+
+1. Verify the file exists.
+2. Verify it has the `.bsl` extension.
+3. Parse the script.
+4. Validate the syntax.
+5. Install it into:
+
+```text
+~/.buffy/commands/
+```
+
+6. Register it inside `installed.json`.
+
+---
+
+# Installation Destination
+
+Regardless of where a package comes from (GitHub or local disk), all installed modules are copied into the Buffy commands directory:
+
+```text
+~/.buffy/commands/
+```
+
+The original file is never modified.
+
+For local installs, the original `.bsl` file remains in its original location after installation.
+
+---
+
+# Updating Packages
+
+To update every installed package:
+
+```bash
+buffy update
+```
+
+Buffy will:
+
+* Check every installed GitHub package.
+* Compare versions.
+* Download newer releases if available.
+* Preserve user configuration.
+* Update `installed.json`.
+
+Packages installed from local `.bsl` files are **not** automatically updated, as Buffy has no remote source to check.
+
+---
+
+# Uninstalling Packages
+
+Syntax:
+
+```bash
+buffy uninstall <package-name>
+```
+
+Example:
+
+```bash
+buffy uninstall pip-env
+```
+
+Buffy will:
+
+1. Remove the installed command files.
+2. Remove the package entry from `installed.json`.
+3. Delete cached package data if applicable.
+
+The original local `.bsl` file (if installed from disk) is never deleted.
+
+---
+
+# Installation Priority
+
+When installing, Buffy determines the source using the following order:
+
+1. If the argument begins with `./`, treat it as a local filesystem installation.
+2. Otherwise, treat the argument as the name of a package in the configured GitHub repository.
+
+Examples:
+
+```bash
+buffy install pip-env
+```
+
+Downloads `pip-env` from the configured GitHub repository.
+
+```bash
+buffy install ./pip-env.bsl
+```
+
+Installs the local `pip-env.bsl` file from the current directory.
+
+This distinction keeps the installation process predictable while allowing both online and offline workflows.
+
+# Repository System
+
+## Overview
+
+Buffy uses GitHub repositories as package sources. A repository is simply a collection of `.bsl` modules organised in a standard layout.
+
+A Buffy installation can use:
+
+* One official repository (default).
+* Multiple configured repositories.
+* A user-specified repository for a single installation.
+
+Every repository follows the same structure, allowing Buffy to treat them identically.
+
+---
+
+# Repository Layout
+
+Every Buffy package repository should have the following layout:
+
+```text
+/
+
+packages/
+
+    pip-env/
+        module.bsl
+        package.json
+        README.md
+
+    apt-update/
+        module.bsl
+        package.json
+
+    pip-update/
+        module.bsl
+        package.json
+
+    docker/
+        compose-up/
+            module.bsl
+            package.json
+
+        compose-down/
+            module.bsl
+            package.json
+```
+
+Each package is contained within its own directory and includes at minimum:
+
+* `module.bsl`
+* `package.json`
+
+Additional documentation and assets are optional.
+
+---
+
+# Official Repository
+
+Every Buffy installation ships with one default package repository.
+
+Example:
+
+```text
+https://github.com/BuffyCLI/packages
+```
+
+The official repository is searched whenever the user installs a package by name.
+
+Example:
+
+```bash
+buffy install pip-env
+```
+
+Buffy searches the configured repositories for `pip-env` and installs the newest compatible version.
+
+---
+
+# Multiple Configured Repositories
+
+Users may configure any number of repositories inside:
+
+```text
+~/.buffy/repositories.json
+```
+
+Example:
+
+```json
+[
+    "https://github.com/BuffyCLI/packages",
+    "https://github.com/ExampleUser/linux-tools",
+    "https://github.com/SomeoneElse/buffy-community"
+]
+```
+
+Repositories are searched in parallel.
+
+---
+
+# Version Resolution
+
+If the same package exists in multiple configured repositories, Buffy compares the version declared in each package's `package.json`.
+
+Example:
+
+Official Repository
+
+```json
+{
+    "name": "pip-env",
+    "version": "1.2.0"
+}
+```
+
+Community Repository
+
+```json
+{
+    "name": "pip-env",
+    "version": "1.3.1"
+}
+```
+
+Buffy installs version **1.3.1** because it is newer.
+
+If two packages have identical versions, Buffy prefers the repository that appears first in `repositories.json`.
+
+---
+
+# Installing from a Specific Repository
+
+Users may bypass the configured repositories and install directly from any public GitHub repository.
+
+Supported forms:
+
+```bash
+buffy install github.com/Blaze1234-deluxe/custom-buffy-plugins pip-env
+```
+
+```bash
+buffy install https://github.com/Blaze1234-deluxe/custom-buffy-plugins pip-env
+```
+
+Both commands behave identically.
+
+The repository is used only for that installation unless the user later adds it to `repositories.json`.
+
+---
+
+# Installing Multiple Packages
+
+Multiple packages can be installed from the same repository using a single command.
+
+Example:
+
+```bash
+buffy install github.com/Blaze1234-deluxe/custom-buffy-plugins pip-env pip-update apt-update
+```
+
+Buffy will:
+
+1. Connect to the specified repository.
+2. Locate each requested package.
+3. Download each package.
+4. Verify each package.
+5. Install each package.
+6. Register each installation in `installed.json`.
+
+Example output:
+
+```text
+Repository:
+custom-buffy-plugins
+
+Installing:
+
+✔ pip-env
+✔ pip-update
+✔ apt-update
+
+3 packages installed successfully.
+```
+
+---
+
+# Installing Every Package
+
+To install every available package from a repository, use the `@` wildcard.
+
+Example:
+
+```bash
+buffy install github.com/Blaze1234-deluxe/custom-buffy-plugins @
+```
+
+or
+
+```bash
+buffy install https://github.com/Blaze1234-deluxe/custom-buffy-plugins @
+```
+
+Buffy will:
+
+1. Read the repository index.
+2. Discover every available package.
+3. Download each package.
+4. Install each package.
+5. Register them in `installed.json`.
+
+Example output:
+
+```text
+Found 84 packages.
+
+Installing...
+
+✔ apt-update
+✔ docker-compose
+✔ docker-restart
+✔ git-clone
+✔ pip-env
+...
+
+84 packages installed successfully.
+```
+
+The `@` symbol is reserved exclusively for "install every package in this repository".
+
+---
+
+# Repository Aliases
+
+Users may optionally assign aliases to repositories.
+
+Example:
+
+```json
+{
+    "official": "https://github.com/BuffyCLI/packages",
+    "community": "https://github.com/BuffyCommunity/packages",
+    "myrepo": "https://github.com/Blaze1234-deluxe/custom-buffy-plugins"
+}
+```
+
+Then:
+
+```bash
+buffy install myrepo pip-env
+```
+
+is equivalent to:
+
+```bash
+buffy install https://github.com/Blaze1234-deluxe/custom-buffy-plugins pip-env
+```
+
+---
+
+# Repository Index
+
+For performance, each repository should include an `index.json` file at its root.
+
+Example:
+
+```json
+{
+    "packages": [
+        {
+            "name": "pip-env",
+            "version": "1.3.0",
+            "path": "packages/pip-env"
+        },
+        {
+            "name": "apt-update",
+            "version": "2.1.0",
+            "path": "packages/apt-update"
+        }
+    ]
+}
+```
+
+Buffy downloads this index first instead of scanning the repository, allowing it to compare versions and locate packages quickly.
+
+---
+
+# Package Verification
+
+Before installation Buffy validates that:
+
+* The package exists.
+* `module.bsl` is present.
+* `package.json` is valid.
+* The package version is correctly formatted.
+* Required metadata is present.
+* The package name matches the requested package.
+
+Packages failing validation are rejected.
+
+---
+
+# Installation Priority
+
+When `buffy install` is executed, Buffy resolves the source in the following order:
+
+1. If the first argument starts with `./`, perform a local installation.
+2. If the first argument is a GitHub URL, install from that repository only.
+3. Otherwise, search every configured repository and install the newest compatible version.
+
+This resolution order makes installation deterministic while allowing users to combine official repositories, community repositories, and private repositories without changing how packages themselves are written.

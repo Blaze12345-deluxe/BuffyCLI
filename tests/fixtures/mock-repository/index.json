@@ -1,0 +1,34 @@
+{
+    "packages": [
+        {
+            "name": "pip-env",
+            "version": "2026.07.27",
+            "description": "Creates Python virtual environments.",
+            "author": "Buffy Community",
+            "path": "packages/pip-env",
+            "dependencies": {
+                "system": ["python3"],
+                "packages": []
+            },
+            "tags": ["python", "venv"],
+            "commands": ["pip-env create"]
+        },
+        {
+            "name": "git-tools",
+            "version": "2026.06.15",
+            "description": "Git helper tools.",
+            "author": "Buffy Community",
+            "path": "packages/git-tools",
+            "dependencies": {
+                "system": ["git"],
+                "packages": ["pip-env"]
+            },
+            "tags": ["git", "version-control"],
+            "commands": ["git-tools clone"]
+        }
+    ],
+    "meta": {
+        "updated": "2026-07-27T14:30:00Z",
+        "package_count": 2
+    }
+}

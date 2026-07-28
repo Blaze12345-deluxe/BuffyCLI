@@ -1,0 +1,186 @@
+# Buffy — CLI Automation Framework
+
+## Vision
+
+Buffy is a cross-platform CLI automation framework that lets anyone create and share terminal commands by writing simple text files — no Python, Bash, or programming experience required.
+
+The core idea: `buffy pip-env` finds a matching `.bsl` script, interprets it, executes every instruction in order, and returns control. Everything beyond the core runtime comes from installable packages.
+
+---
+
+## Design Principles
+
+- **Lightweight** — The executable is small. Nearly all functionality comes from BSL modules.
+- **Fast** — Written in Rust. Synchronous HTTP (ureq), no heavy async runtime.
+- **Modular** — Each subsystem (BSL, packages, repos, config) is independent and testable.
+- **Safe** — BSL is intentionally limited. Validated before execution. SHA-256 verification on all packages.
+- **Easy to learn** — Declarative, human-readable syntax. A file you can open and understand immediately.
+- **Linux-first** — Primary target is Linux. macOS is secondary. Windows is tertiary.
+- **Open source** — Community-driven package sharing via GitHub repositories.
+
+---
+
+## Core Components
+
+### BSL Language (Buffy Script Language)
+
+A simple, interpreted scripting language. Not general-purpose — purpose-built for automation.
+
+**Metadata:** VERSION, AUTHOR, DESCRIPTION, OUTPUT
+**Instructions:** RUN, WRITE, WAIT, CLEAR, EXIT
+**Built-in Variables:** ${HOME}, ${USER}, ${PWD}, ${TEMP}, ${DATE}, ${TIME}, ${1}–${N}
+
+**Philosophy:** Every line does one thing. Comments start with `//`. Metadata comes before instructions. Execution stops on error. Users should be able to open a .bsl file and understand it immediately.
+
+### Package System
+
+Packages are the distribution unit. Each package contains one or more .bsl files plus metadata.
+
+**Key features:**
+- One package can contain multiple related commands (e.g., pip-env has create, activate, destroy)
+- Date-based versioning (YYYY.MM.DD)
+- SHA-256 verification with 3-way comparison (generated hash vs package.json vs {name}-SHA.txt)
+- System dependencies (checks $PATH) + BSL package dependencies (auto-installed)
+- Tags/categories for discoverability
+
+**Install sources (resolved in order):**
+1. `./` prefix → Local filesystem
+2. `github.com/...` or `https://...` → Specific GitHub repo
+3. `@` → All packages from a repo
+4. Plain name → Configured repositories
+
+### Repository System
+
+Packages are distributed through GitHub repositories. No central registry.
+
+- One official repository by default: `https://github.com/BuffyCLI/packages`
+- Multiple configured repositories in `repositories.json`
+- Repository aliases for convenience
+- Private repository support via GITHUB_TOKEN
+- `index.json` at repo root for fast lookups (no API scanning)
+
+### Command Resolution
+
+Commands are resolved by walking `~/.buffy/commands/` using CLI arguments as path segments.
+
+Resolution priority:
+1. Exact file match (`commands/pip-env/create.bsl`)
+2. `index.bsl` as default (`commands/pip-env/index.bsl`)
+3. Directory name match (`commands/pip-env/pip-env.bsl`)
+4. First alphabetically
+5. Error
+
+### Name Conflict Resolution
+
+If two packages share the same name from different authors (different SHA-256), Buffy:
+1. Lists them with author names and SHAs
+2. Prompts the user to choose
+3. Caches the choice in aliases.json with easy way to change later
+
+---
+
+## Built-in Commands
+(management only — everything else comes from packages)
+
+| Command | Purpose |
+|---------|---------|
+| `buffy` | Welcome page |
+| `--list` | List installed commands |
+| `--version` | Buffy version |
+| `--about` | Project info |
+| `--doctor` | Full system check |
+| `--update` | Self-update Buffy CLI |
+| `--check-update` | Check for updates |
+| `--install` | Install package(s) |
+| `--uninstall` | Remove a package |
+| `--update-packages` | Update all packages |
+| `--update-package` | Update one package |
+| `--info` | Package metadata |
+| `--outdated` | Show outdated packages |
+| `--verify` | Verify package integrity |
+| `--clean` | Clear cache |
+| `--repo` | Manage repositories |
+| `--logs` | View/manage logs |
+| `--check` | Check BSL syntax |
+| `--validate` | Validate metadata |
+| `--run` | Run .bsl without installing |
+| `--benchmark` | Measure execution time |
+| `--repair` | Fix broken installation |
+| `--reset` | Reset configuration |
+| `--discover` | Scan system → suggest packages |
+
+---
+
+## Data Flow
+
+```
+User types "buffy pip-env"
+        │
+        ▼
+CLI parser (clap) → matches no flags
+        │
+        ▼
+Command resolver → walks ~/.buffy/commands/pip-env/
+        │
+        ▼
+BSL interpreter → lexer → parser → executor
+        │
+        ▼
+Shell commands run via detected user shell
+```
+
+```
+buffy --install pip-env
+        │
+        ▼
+CLI parser → matches --install flag
+        │
+        ▼
+Package installer → locate → download → verify SHA-256 → install to commands/ → register
+```
+
+---
+
+## File Formats
+
+### ~/.buffy/ directory structure
+
+```
+~/.buffy/
+├── commands/           # Installed .bsl files
+├── packages/           # Cached package metadata
+├── cache/              # Temporary downloads
+├── logs/               # Execution logs
+├── config.json         # User config
+├── installed.json      # Installed package registry (SHA-suffixed keys)
+├── repositories.json   # Repository list
+└── aliases.json        # Command aliases + conflict preferences
+```
+
+### Package repository structure
+
+```
+<repo-root>/
+├── index.json                          # All packages index
+└── packages/<name>/
+    ├── package.json                    # Manifest (required)
+    ├── <name>-SHA.txt                  # SHA-256 checksum (required)
+    ├── *.bsl                           # Commands (at least one required)
+    ├── README.md                       # Docs (optional)
+    └── LICENSE                         # License (optional)
+```
+
+---
+
+## Future Features
+
+- IF/ELSE conditionals
+- FOREACH loops
+- ASK for user input
+- Native file operations (CREATE, COPY, MOVE, DELETE, DOWNLOAD)
+- Functions and imports
+- Background/parallel execution
+- Progress bars
+- Shell auto-completion
+- Digital package signatures
+- Windows and macOS support

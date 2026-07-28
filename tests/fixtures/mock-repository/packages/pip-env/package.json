@@ -1,0 +1,12 @@
+{
+    "name": "pip-env",
+    "version": "2026.07.27",
+    "description": "Creates Python virtual environments.",
+    "author": "Buffy Community",
+    "sha256": "test-hash-placeholder",
+    "tags": ["python", "venv"],
+    "dependencies": {
+        "system": ["python3"],
+        "packages": []
+    }
+}

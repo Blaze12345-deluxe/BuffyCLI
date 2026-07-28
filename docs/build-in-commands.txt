@@ -1,0 +1,103 @@
+buffy --list
+should list all commands available (no sub-commands unless run alongside them)
+
+buffy
+should display a welcome page with instructions on how to start using it (Not a tag, just running the software)
+
+buffy --version
+displays the buffy version
+
+buffy --about
+displays project info
+
+buffy --doctor
+checks configs, installed packages, repository conectivity, permissions and BSL syntax on all scripts
+
+buffy --update
+buffy updates itself from its github repo
+
+buffy --check-update
+checks for updates without updating itself (displays old and new version numbers)
+
+buffy --install pip-env
+Install from configured repositories.
+
+buffy --install ./pip-env.bsl
+Install from local disk.
+
+buffy --install github.com/user/repo pip-env
+Install from a specific repository.
+
+buffy --install github.com/user/repo @
+Install everything from that repository.
+
+buffy --uninstall pip-env
+Remove a package.
+
+buffy --update-packages
+Update every installed package.
+
+buffy --update-package pip-env
+Update one package.
+
+buffy --info pip-env
+Show metadata.
+
+buffy --outdated
+Show packages with updates available.
+
+buffy --verify pip-env
+Verify package integrity. (use SHA-256 (File called {Package-name}-SHA.txt will contain the SHA-256 keys) (diffrent *-SHA.txt file per package)
+
+buffy --clean
+Clear package cache.
+
+buffy --repo list
+List configured repositories.
+
+buffy --repo add https://github.com/example/repo
+Add a repository.
+
+buffy --repo remove https://github.com/example/repo
+Remove a repository
+
+buffy --repo update
+Refresh repository indexes.
+
+buffy --logs
+Open the latest log.
+
+buffy --logs clear
+Delete logs.
+
+buffy pip-env --logs
+runs command while showing commands in terminal (For debugging)
+
+buffy --check script.bsl
+Check syntax.
+
+buffy --validate script.bsl
+Validate metadata.
+
+buffy --run script.bsl
+Run a .bsl file without installing it.
+
+buffy --benchmark script.bsl
+Measure execution time for each line and in total
+
+buffy --repair
+Repairs a broken installation.
+
+buffy --reset
+Deletes cache and regenerates configuration.
+
+buffy --discover
+It would scan the user's system for installed software (such as Git, Docker, Python, Node.js, Java, FFmpeg, etc.) and recommend useful packages: For e.g
+(Pulls packages and package tags from github repo (Tags can be stored in *-SHA.txt file alongside the SHA-256 key)
+Found Python 3.13
+  → Suggested: pip-env, python-project
+Found Docker
+  → Suggested: docker-compose-up, docker-restart
+Found Git
+  → Suggested: git-clone, git-clean
+Install all suggested packages? (Y/n)

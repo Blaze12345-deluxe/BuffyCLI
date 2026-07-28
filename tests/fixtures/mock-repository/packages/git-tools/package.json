@@ -1,0 +1,12 @@
+{
+    "name": "git-tools",
+    "version": "2026.06.15",
+    "description": "Git helper tools.",
+    "author": "Buffy Community",
+    "sha256": "abc123def456abc123def456abc123def456abc123def456abc123def456abc1",
+    "tags": ["git", "version-control"],
+    "dependencies": {
+        "system": ["git"],
+        "packages": ["pip-env"]
+    }
+}
