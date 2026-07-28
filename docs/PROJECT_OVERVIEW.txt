@@ -40,12 +40,11 @@ The core idea is simple:
 
 This causes Buffy to locate a matching .bsl file, interpret it, execute every
 instruction in order, and return control to the user. Everything beyond the
-core runtime comes from installable packages.
-
-For example:
+core runtime comes from installable packages.For example:
   buffy pip-env         => Runs the pip-env .bsl script
+                          (pre-installed in v0.1.2+)
   buffy --install pip-env  => Downloads and installs the pip-env package
-
+                          (only needed for older versions)
 The Buffy executable itself only handles:
   1. Parsing CLI arguments.
   2. Resolving commands to .bsl files.

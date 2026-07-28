@@ -99,11 +99,15 @@ QUICK START
   3. Search for available packages:
        buffy --repo search
 
-  4. Install a package:
-       buffy --install pip-env
-
-  5. Run a command:
+  4. Try a bundled command (pre-installed in v0.1.2+):
        buffy pip-env
+       (pip-env ships with Buffy -- no need to install it.)
+
+  5. Install additional packages:
+       buffy --install docker-tools
+
+  6. See all flags:
+       buffy --help
 
   4. See all flags:
        buffy --help

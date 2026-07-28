@@ -315,11 +315,15 @@ Add the eval command to your shell's rc file to persist across sessions.
 Run system diagnostics:
   buffy --doctor
 
-Install a package:
-  buffy --install pip-env
+Use a bundled command (pre-installed in v0.1.2+):
+  buffy pip-env
+  (pip-env ships with Buffy -- no need to install it.)
+
+Install a package from a repository:
+  buffy --install docker-tools
 
 Install from a specific repository:
-  buffy --install github.com/Blaze12345-deluxe/Buffy-Plugins pip-env
+  buffy --install github.com/Blaze12345-deluxe/Buffy-Plugins docker-tools
 
 Install all packages from a repository:
   buffy --install github.com/Blaze12345-deluxe/Buffy-Plugins @

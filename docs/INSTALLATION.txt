@@ -107,8 +107,12 @@ List configured repositories to confirm:
 Search for available packages:
   buffy --repo search
 
-Install your first package:
-  buffy --install pip-env
+Buffy v0.1.2+ ships with pip-env pre-installed. Try it immediately:
+  buffy pip-env
+  (Creates a Python virtual environment in the current directory.)
+
+Install additional packages:
+  buffy --install docker-tools
 
 Run a system check:
   buffy --doctor
