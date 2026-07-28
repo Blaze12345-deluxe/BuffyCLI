@@ -1,0 +1,102 @@
+================================================================================
+                             CHANGELOG
+================================================================================
+
+This file tracks all notable changes to the Buffy CLI project.
+
+================================================================================
+v0.1.0 -- 2026-07-27
+================================================================================
+
+Initial release. Complete implementation of all core features.
+
+Added:
+  Phase 0 -- Project initialization
+    - Rust project scaffolding with cargo init.
+    - Module directory structure for all subsystems.
+    - All crate dependencies (clap, serde, ureq, sha2, etc.).
+    - Release profile with LTO and strip optimization.
+    - Test fixture directories.
+
+  Phase 1 -- Configuration manager
+    - Unified BuffyError enum with thiserror derives and user-facing tips.
+    - Platform path resolution via dirs crate.
+    - ~/.buffy/ home directory layout with ensure_directories().
+    - JSON config file management: read/write config.json, installed.json,
+      repositories.json.
+
+  Phase 2 -- Logger
+    - Colored terminal output with write(), success(), error(), warning(),
+      info() functions.
+    - tracing subscriber initialization for structured logging.
+
+  Phase 3 -- BSL interpreter core
+    - AST types: BslScript, Metadata (Version, Author, Description, Output),
+      Statement (Write, Run, Wait, Clear, Exit, SetOutput), Token.
+    - Line-based lexer with comment stripping and line numbers.
+    - Parser with metadata validation, instruction parsing, and
+      UnknownInstruction rejection.
+    - Variable resolver for ${HOME}, ${USER}, ${PWD}, ${TEMP}, ${DATE},
+      ${TIME}, ${1} through ${N}.
+    - Shell executor using detected user shell ($SHELL or /bin/sh).
+    - Interpreter with sequential execution and stop-on-error behavior.
+
+  Phase 4 -- CLI and resolver
+    - Clap-based CLI with 25 flags covering all operations.
+    - Directory-walking command resolver with 5 resolution priorities.
+    - Alias resolution before directory walking.
+    - Flat lookup fallback for single-argument commands.
+
+  Phase 5 -- Repository manager
+    - Install source type parsing (local, GitHub, configured).
+    - Repository index data structures with version comparison.
+    - GitHub HTTP integration with local caching of indexes.
+    - Cross-repository package search and discovery.
+
+  Phase 6 -- Package manager
+    - Install from 4 sources: local file, GitHub URL, configured repos,
+      bulk @ wildcard.
+    - Per-file SHA-256 verification with backward-compatible legacy support.
+    - Name conflict detection and resolution with user-prompt caching.
+    - System and BSL dependency resolution with circular dependency
+      detection.
+    - Package update mechanism with version checking.
+    - Package uninstall with dependent-package warnings.
+    - System tool discovery (scans 46 tools on $PATH).
+
+  Phase 7 -- Diagnostics
+    - System doctor with 11 checks (directories, config, SHA, connectivity,
+      dependencies).
+    - BSL linter with 9 check types (metadata, empty instructions,
+      destructive commands, maintainability).
+    - Metadata validator.
+    - Benchmark runner (3 timed runs with warm-up).
+    - Self-update checker via GitHub API.
+    - Configuration repair and reset utilities.
+
+  Phase 8 -- Name conflicts and aliases
+    - Conflict detection by SHA comparison.
+    - User-prompt resolution with persisted caching.
+    - Alias management (create, list, resolve, remove).
+    - Conflict preference storage in aliases.json.
+
+  Phase 9 -- Polish and documentation
+    - Shell completion generation (bash, zsh, fish, elvish, powershell).
+    - Welcome screen with usage hints.
+    - Error messages with helpful suggestions in every variant.
+    - CI pipeline (GitHub Actions: build, test, clippy, fmt-check).
+    - 9 real-world BSL example scripts.
+    - 77+ unit and integration tests.
+    - Test fixtures (8 scripts, 2 mock packages, mock buffy home).
+    - README, CONTRIBUTING, SECURITY, CHANGELOG documentation.
+
+Fixed:
+  - Lexer no longer incorrectly parses "=" inside string arguments.
+  - Interpreter correctly handles runtime OUTPUT toggle mid-script.
+  - Linter handles all Statement variants exhaustively.
+  - Uninstall removes unused variable causing compiler warning.
+  - Test stability via shared TEST_HOME_LOCK mutex for HOME-dependent tests.
+  - SHA verification changed from combined to per-file hashes for
+    maintainability.
+
+--- End of CHANGELOG.txt ---

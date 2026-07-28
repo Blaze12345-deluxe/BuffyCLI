@@ -1,0 +1,419 @@
+================================================================================
+                             AI CONTEXT
+================================================================================
+
+This file contains all relevant context accumulated during development of the
+Buffy CLI Automation Framework. It preserves design reasoning, architectural
+decisions, implementation notes, assumptions, and planning decisions so that
+any future developer or AI agent can understand the full context of the
+project.
+
+================================================================================
+1.  ORIGINAL PROJECT GOALS
+================================================================================
+
+Buffy was created to solve a specific problem: users should be able to create
+and share terminal commands by writing simple text files, without needing to
+know Python, Bash, or any programming language.
+
+The original vision had these core requirements:
+  - A simple, declarative scripting language (BSL).
+  - A CLI that resolves commands by name and runs them.
+  - A package system for sharing commands via GitHub.
+  - SHA-256 verification for package integrity.
+  - Linux-first, with macOS and Windows secondary.
+
+The project deliberately avoids:
+  - Being a general-purpose programming language.
+  - Having a central package registry (uses GitHub repos directly).
+  - Requiring an async runtime (all HTTP is synchronous).
+  - Including built-in commands for specific tools (everything comes from
+    packages).
+
+
+================================================================================
+2.  FEATURE REQUIREMENTS
+================================================================================
+
+Phase 0 - Project Initialization:
+  - Initialize Rust project with cargo.
+  - Set up all module directories.
+  - Configure dependencies in Cargo.toml.
+  - Create test fixture directories.
+
+Phase 1 - Configuration Manager:
+  - Unified error types with thiserror.
+  - Platform path resolution via dirs crate.
+  - ~/.buffy/ directory management.
+  - JSON config file I/O (config.json, installed.json, repositories.json).
+
+Phase 2 - Logger:
+  - Colored terminal output with success/error/info/warning functions.
+  - Structured logging to daily files via tracing.
+
+Phase 3 - BSL Interpreter Core:
+  - AST definitions (BslScript, Metadata, Statement, Token).
+  - Line-based lexer with comment stripping and line numbers.
+  - Parser with metadata validation and instruction parsing.
+  - Variable resolver with regex-based ${VAR} expansion.
+  - Shell executor using detected user shell.
+  - Interpreter that walks AST and dispatches to handlers.
+
+Phase 4 - CLI and Resolver:
+  - Clap-based CLI argument parsing with all flags.
+  - Directory-walking command resolver with 5 priority levels.
+  - Alias resolution before directory walk.
+  - Flat lookup fallback for single-arg commands (buffy cd-down).
+
+Phase 5 - Repository Manager:
+  - GitHub repository integration via raw.githubusercontent.com.
+  - Index.json fetching with local caching.
+  - Cross-repository package search.
+  - Repository validation on add.
+
+Phase 6 - Package Manager:
+  - Install from 4 sources (local, GitHub URL, configured repos, bulk @).
+  - SHA-256 per-file verification.
+  - Name conflict detection and resolution.
+  - Dependency resolution (system + BSL).
+  - Update mechanism with version checking.
+  - Uninstall with dependent-package warnings.
+  - System discovery (scan $PATH, suggest packages).
+
+Phase 7 - Diagnostics:
+  - System doctor (buffy --doctor) with 11 checks.
+  - BSL linter (buffy --check) with 9 check types.
+  - Metadata validator (buffy --validate).
+  - Benchmark runner (3 timed runs + warm-up).
+  - Self-update via GitHub API.
+  - Repair utility (fix corrupt config, remove orphans).
+  - Configuration reset.
+
+Phase 8 - Name Conflicts and Aliases:
+  - Conflict detection by SHA comparison.
+  - User-prompt resolution with choice caching.
+  - Alias management (set, list, remove, resolve).
+  - Conflict preference storage in aliases.json.
+
+Phase 9 - Polish and Documentation:
+  - Shell completion generation (bash, zsh, fish, elvish, powershell).
+  - Welcome screen with usage hints.
+  - Error message polish with helpful suggestions.
+  - CI pipeline (build + test + clippy + fmt-check).
+  - Example .bsl scripts.
+  - Comprehensive documentation.
+
+
+================================================================================
+3.  CONSTRAINTS
+================================================================================
+
+TECHNICAL CONSTRAINTS:
+  - No async runtime (no tokio). Use ureq for synchronous HTTP.
+  - Single crate (binary + library), no workspace.
+  - All tests must run with "cargo test", no external test harness.
+  - Test HOME isolation via mutex to prevent parallel-test races.
+  - SHA-256 verification must support both per-file and legacy combined
+    formats for backward compatibility.
+
+DESIGN CONSTRAINTS:
+  - Linux is primary target. macOS secondary. Windows tertiary.
+  - The Buffy executable should NOT contain hard-coded commands for specific
+    tools. Everything beyond core functionality comes from packages.
+  - Package distribution uses GitHub repositories directly. No central
+    registry, no package manager API.
+  - BSL is intentionally NOT sandboxed. RUN commands execute as the current
+    user. Security is at the package distribution layer (SHA verification),
+    not the script execution layer.
+
+FILE FORMAT CONSTRAINTS:
+  - .bsl files are plain UTF-8 text.
+  - Each line contains at most one instruction.
+  - Metadata must come before executable instructions.
+  - Comments start with //.
+  - Variables use ${NAME} syntax.
+
+
+================================================================================
+4.  DESIGN REASONING
+================================================================================
+
+Why use ureq instead of reqwest?
+  ureq is synchronous, which means we don't need tokio or any async runtime.
+  This keeps the binary small, the compile times fast, and the code simple.
+  For a CLI tool that makes occasional HTTP requests to GitHub, synchronous
+  I/O is perfectly adequate. If parallel repository checking is needed later,
+  async can be introduced incrementally.
+
+Why use regex-lite instead of the full regex crate?
+  The only regex usage in Buffy is for ${VAR} expansion in the variable
+  resolver. This is a simple pattern (\$\{\w+\}) that doesn't need the full
+  regex engine. regex-lite is a lighter alternative that compiles faster.
+
+Why use indicatif for progress bars?
+  indicatif is the standard progress bar library for Rust CLI tools. It
+  provides spinners and progress bars that work well in terminals.
+
+Why use tracing for logging instead of the log crate?
+  tracing provides structured, composable logging that is more suitable for
+  a multi-subsystem application than the simple log crate. It also integrates
+  well with tracing-subscriber for file output.
+
+Why per-file SHA hashes instead of combined hashes?
+  The original design used a single combined SHA-256 hash for the entire
+  package. This meant that adding a new .bsl file to a package required
+  regenerating the hash, which invalidated the existing checksum. Per-file
+  hashes allow adding new files without breaking existing hashes. Backward
+  compatibility is maintained through the _combined sentinel key.
+
+Why the flat lookup fallback in the resolver?
+  Users found it inconvenient to type "buffy file-system cd-down" when they
+  just wanted to navigate up a directory. The flat lookup scans all package
+  directories for a .bsl file that matches the command name, so "buffy
+  cd-down" works without specifying the package name. If multiple packages
+  have the same filename, the first match is returned (alphabetically by
+  package directory).
+
+Why no central package registry?
+  GitHub repositories are the distribution mechanism. This avoids needing to
+  operate a central server, manage authentication for a registry, or handle
+  package approval workflows. Users trust their own repository choices. The
+  trade-off is that package discovery requires either knowing the repository
+  URL or using the --discover and --repo search features.
+
+Why use #[serde(untagged)] for Aliases?
+  The aliases.json file stores both simple string aliases ("ve": "pip-env")
+  and complex conflict preference objects ("pip-env": {"preferred": "...",
+  "source": "..."}). Using #[serde(untagged)] on the AliasValue enum allows
+  serde to try each variant in order and choose the one that matches. Simple
+  comes before ConflictPreference in the enum definition, so strings match
+  first.
+
+Why use chrono for versioning?
+  Date-based versioning (YYYY.MM.DD) is simpler than semantic versioning for
+  packages that may be updated multiple times on the same day. It also gives
+  an immediate sense of how current a package is. A build number can be
+  appended for multiple same-day releases (YYYY.MM.DD.N).
+
+Why the SHELL environment variable for RUN commands?
+  Instead of hard-coding /bin/sh, Buffy detects the user's preferred shell
+  from the SHELL environment variable. This respects user preferences (e.g.,
+  zsh, fish) and ensures that shell-specific features (aliases, functions)
+  are available in RUN commands. Falls back to /bin/sh if SHELL is not set.
+
+
+================================================================================
+5.  ARCHITECTURAL DECISIONS
+================================================================================
+
+DECISION: Module Layering
+  STATS:
+    - bsl/, config/, logger/ are base layers (no upper-layer dependencies).
+    - cli/, package/, repository/, diagnostic/ are upper layers.
+    - error/ is used by everyone.
+  RATIONALE:
+    Clear layering prevents circular dependencies and makes testing easier.
+    Base layers can be tested in isolation.
+
+DECISION: Single Crate (no workspace)
+  STATS:
+    - All code in src/ under one crate.
+    - lib.rs for library code, main.rs for binary entry point.
+  RATIONALE:
+    For a project of this size, a workspace adds unnecessary complexity.
+    If the project grows significantly, the package manager or repository
+    modules could be extracted into separate crates.
+
+DECISION: Installed.json as an Array
+  STATS:
+    - installed.json is a JSON array of InstalledEntry objects.
+    - SQLite would be more appropriate for a package database, but adds a
+      build dependency and complexity.
+  RATIONALE:
+    JSON files are simple, human-readable, and easy to debug. The number of
+    installed packages is typically small (< 100). If the project grows to
+    thousands of packages, a proper database can be introduced.
+
+DECISION: Inline Tests vs Separate Test Files
+  STATS:
+    - Unit tests are inline in each module ( #[cfg(test)] mod tests ).
+    - Integration tests are in tests/integration/.
+    - Test fixtures are in tests/fixtures/.
+  RATIONALE:
+    Inline tests stay close to the code they test and are easier to maintain.
+    Integration tests verify end-to-end flows. Fixtures provide reusable,
+    isolated test data.
+
+DECISION: Shared HOME Lock for Tests
+  STATS:
+    - buffy_home.rs exports TEST_HOME_LOCK: Mutex<()>.
+    - Individual test modules may also define their own HOME_LOCK.
+  RATIONALE:
+    Tests that modify the HOME environment variable must be serialized to
+    prevent parallel-test races. The shared mutex ensures only one test at
+    a time manipulates HOME.
+
+DECISION: BSL Error Handling = Stop on Error
+  STATS:
+    - Non-zero exit from RUN stops execution immediately.
+    - Errors display command, exit code, and stderr.
+  RATIONALE:
+    Continuing after a failed command would be dangerous in automation
+    scripts. Fail-fast behavior is safer. Future versions may add try/catch
+    or error-handling instructions for more granular control.
+
+
+================================================================================
+6.  IMPLEMENTATION NOTES
+================================================================================
+
+BUFFY_HOME PATHS:
+  - buffy_home() returns ~/.buffy/
+  - Uses dirs::home_dir() for cross-platform home directory resolution.
+  - On Linux: /home/<user>/.buffy/
+  - On macOS: /Users/<user>/.buffy/
+  - On Windows: C:\Users\<user>\.buffy\
+
+ALIASES ALGORITHM:
+  - Aliases are resolved BEFORE directory walking in the resolver.
+  - Only the FIRST argument is checked for alias expansion.
+  - Conflict preferences are resolved during INSTALL, not during execution.
+  - aliases.json uses #[serde(flatten)] to store both aliases and conflict
+    preferences in the same object.
+
+SHA VERIFICATION ALGORITHM:
+  - Per-file mode: each .bsl file is hashed individually. Compare each
+    against package.json entry and SHA.txt entry.
+  - Legacy mode: all .bsl files are concatenated (sorted alphabetically) and
+    hashed once. Compare single hash against package.json and SHA.txt.
+  - SHA.txt parsing: if the identifier after the hash ends with ".bsl", it's
+    per-file format. Otherwise, it's legacy combined format.
+  - Files excluded from hashing: package.json and {name}-SHA.txt.
+
+DEPENDENCY RESOLUTION:
+  - Circular dependencies are detected via a visited set.
+  - BSL package dependencies are auto-installed before the requesting package.
+  - System dependencies are checked on $PATH but only reported as warnings
+    (not errors), since the user may install them later.
+  - Dependency installation retries once on failure.
+
+PACKAGE INSTALL FLOW:
+  1. Parse the install source (local, GitHub, configured).
+  2. If local: derive name from filename, generate manifest, copy to
+     commands/, register.
+  3. If GitHub: fetch index, find package, download files to temp dir,
+     verify SHA, check conflicts, resolve deps, copy to commands/,
+     register.
+  4. If configured: iterate repositories, try each one until found.
+
+RESOLVER FLAT LOOKUP:
+  - Only triggers when at the commands_dir root (not inside a subdirectory).
+  - Scans all subdirectories of commands/ for a matching {arg}.bsl file.
+  - If exactly one match, returns it.
+  - If multiple matches, returns the first one (deterministic based on
+    filesystem readdir order, which is roughly alphabetical on most
+    filesystems).
+  - This allows "buffy cd-down" instead of "buffy file-system cd-down".
+
+DISCOVER TOOL DETECTION LIST:
+  The discover function checks for 46 tools on $PATH:
+    python3, python, pip, pip3, git, docker, docker-compose, node, npm,
+    yarn, cargo, rustc, go, java, mvn, gradle, npx, rails, bundle, gem,
+    php, composer, dotnet, kubectl, helm, terraform, vagrant, ansible,
+    make, cmake, psql, mysql, redis-cli, mongosh, sqlite3, htop, neofetch,
+    curl, wget, jq, yq, ffmpeg, imagemagick, ssh, tmux, screen
+
+SELF-UPDATE MECHANISM:
+  - Fetches https://api.github.com/repos/BuffyCLI/buffy/releases/latest
+  - Compares tag_name with current CARGO_PKG_VERSION.
+  - Only displays download instructions (does not auto-update the binary).
+  - This is by design: auto-updating an executable is risky and requires
+    elevated permissions on most systems.
+
+SHELL COMPLETION:
+  - Uses clap_complete crate for generation.
+  - Supports bash, zsh, fish, elvish, powershell.
+  - Generates completions for all CLI flags (not for BSL commands/packages).
+  - BSL command completion would require runtime scanning of installed
+    packages and is not currently implemented.
+
+
+================================================================================
+7.  ASSUMPTIONS
+================================================================================
+
+ASSUMPTION: The user trusts their installed .bsl packages.
+  RATIONALE: BSL is intentionally NOT sandboxed. Any RUN command executes as
+  the current user. Security is at the package distribution layer (SHA
+  verification), not the script execution layer. Users should only install
+  packages from repositories they trust.
+
+ASSUMPTION: The SHELL environment variable points to a POSIX-compatible shell.
+  RATIONALE: The executor passes commands to $SHELL with -c flag. This assumes
+  the shell accepts -c for inline command execution. Works with bash, zsh,
+  sh, fish, and most modern shells.
+
+ASSUMPTION: Package versions only increase (never decrease).
+  RATIONALE: Version comparison is purely numeric. Version "2026.07.28" is
+  always greater than "2026.07.27". There is no concept of "downgrading" a
+  package. If a user wants an older version, they must uninstall and install
+  from a specific tag/commit.
+
+ASSUMPTION: The user has network access to GitHub.
+  RATIONALE: Package installation, updates, search, and self-update all
+  require access to raw.githubusercontent.com and api.github.com. Offline
+  usage is limited to running already-installed commands.
+
+ASSUMPTION: The HOME directory is writable.
+  RATIONALE: Buffy creates ~/.buffy/ and writes configuration files, installed
+  packages, cache, and logs there. If HOME is read-only or full, Buffy will
+  fail with an IO error.
+
+ASSUMPTION: Tests run on a Unix-like system.
+  RATIONALE: Many tests invoke /bin/sh and Unix commands (echo, false,
+  mkdir). The test suite may not pass on Windows without modifications.
+
+
+================================================================================
+8.  IMPLEMENTATION TIMELINE
+================================================================================
+
+Phase 0: Project Initialization (cargo init, Cargo.toml, directory structure)
+Phase 1: Configuration Manager (BuffyError, paths, buffy_home, settings)
+Phase 2: Logger (formatter functions, tracing init)
+Phase 3: BSL Interpreter Core (ast, lexer, parser, interpreter, executor,
+         variable resolver, error types)
+Phase 4: CLI & Resolver (clap args, directory tree resolver, dispatch)
+Phase 5: Repository Manager (source parsing, index, GitHub HTTP integration)
+Phase 6: Package Manager (install, uninstall, update, verify, manifest, deps,
+         discover)
+Phase 7: Diagnostics (doctor, lint, validate, benchmark, self-update, repair,
+         reset)
+Phase 8: Name Conflicts & Aliases (conflict detection, aliases.json)
+Phase 9: Polish & Documentation (shell completion, CI, examples, README,
+         CONTRIBUTING, SECURITY, CHANGELOG)
+
+Total modules: 39 source files, 5 integration test files
+Total tests: 77+ (unit + integration)
+
+
+================================================================================
+9.  DEVELOPMENT ENVIRONMENT
+================================================================================
+
+Primary development machine:
+  - Operating System: Linux
+  - Shell: bash
+  - Package manager: cargo
+  - Editor: unspecified (AI-driven development via Freebuff)
+  - Project path: /home/rezahusein/Projects/buffy
+
+Key environment variables:
+  - SHELL: /bin/bash (or user's preferred shell)
+  - HOME: /home/rezahusein
+  - GITHUB_TOKEN: (optional, for private repos)
+
+Plugin repository path: /tmp/Buffy-Plugins (local clone)
+Plugin repository URL: https://github.com/Blaze12345-deluxe/Buffy-Plugins
+
+--- End of AI_CONTEXT.txt ---

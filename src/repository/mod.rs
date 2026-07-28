@@ -1,3 +1,9 @@
+//! GitHub repository integration for package distribution.
+//!
+//! Handles fetching repository indexes, downloading package files, and
+//! searching across multiple configured repositories. All HTTP requests
+//! use synchronous `ureq` connections to raw.githubusercontent.com.
+
 pub mod github;
 pub mod index;
 pub mod source;

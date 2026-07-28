@@ -1,0 +1,292 @@
+================================================================================
+                           CONFIGURATION
+================================================================================
+
+Table of Contents
+-----------------
+1.  Directory Structure
+2.  Config File (config.json)
+3.  Installed Packages (installed.json)
+4.  Repositories (repositories.json)
+5.  Aliases (aliases.json)
+6.  Cache and Logs
+7.  Package Repository Index (index.json)
+8.  Package Manifest (package.json)
+9.  Environment Variables
+10. Default Values
+
+
+================================================================================
+1.  DIRECTORY STRUCTURE
+================================================================================
+
+All Buffy data is stored under ~/.buffy/. The directory is created
+automatically on first run.
+
+~/.buffy/
+  commands/          Installed .bsl files, organized by package.
+                       Each subdirectory is a package.
+                       ~/.buffy/commands/pip-env/create.bsl
+                       ~/.buffy/commands/pip-env/index.bsl
+
+  packages/          Cached package metadata (reserved for future use).
+
+  cache/             Temporary downloads and cached repository indexes.
+                       ~/.buffy/cache/indexes/{owner}/{repo}/index.json
+
+  logs/              Daily execution logs.
+                       ~/.buffy/logs/2026-07-28.log
+
+  config.json        User configuration (output preferences, update settings).
+
+  installed.json     Registry of installed packages.
+
+  repositories.json  List of package repository URLs.
+
+  aliases.json       Command aliases and conflict preferences.
+
+
+================================================================================
+2.  CONFIG FILE (config.json)
+================================================================================
+
+Path: ~/.buffy/config.json
+
+Fields:
+  default_repositories   (array of strings, default: [])
+    Additional repository URLs. Not used directly -- use repositories.json
+    for the active repository list.
+
+  output_preferences     (object)
+    color: true/false    Enable colored terminal output (default: true).
+    show_progress: true/false  Enable progress bars (default: true).
+
+  update_settings        (object)
+    check_on_startup: true/false  Check for updates on startup (default: true).
+    auto_update: true/false  Auto-apply updates (default: false, not yet
+                             implemented).
+
+  package_verification   (boolean, default: true)
+    Enable SHA-256 verification during package install/update.
+
+Default config.json:
+  {
+    "default_repositories": [],
+    "output_preferences": { "color": true, "show_progress": true },
+    "update_settings": { "check_on_startup": true, "auto_update": false },
+    "package_verification": true
+  }
+
+
+================================================================================
+3.  INSTALLED PACKAGES (installed.json)
+================================================================================
+
+Path: ~/.buffy/installed.json
+
+Format: JSON array of installed package objects.
+
+Fields per entry:
+  name          (string) Package name, also the commands/ subdirectory name.
+  version       (string) Installed version (YYYY.MM.DD format).
+  installed     (string) ISO date of installation (YYYY-MM-DD).
+  source        (string) Origin: "local", "github.com/owner/repo", etc.
+  sha256        (string) SHA-256 hash for integrity verification.
+  author        (string) Package author name.
+  dependencies  (object)
+    system:     (array of strings) Required system tools.
+    packages:   (array of strings) Required BSL packages.
+
+Example:
+  [
+    {
+      "name": "pip-env",
+      "version": "2026.07.27",
+      "installed": "2026-07-27",
+      "source": "github.com/Blaze12345-deluxe/Buffy-Plugins",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "author": "Buffy Community",
+      "dependencies": { "system": ["python3"], "packages": [] }
+    }
+  ]
+
+
+================================================================================
+4.  REPOSITORIES (repositories.json)
+================================================================================
+
+Path: ~/.buffy/repositories.json
+
+Format: JSON array of repository URL strings.
+
+Default (if file doesn't exist):
+  ["https://github.com/Blaze12345-deluxe/Buffy-Plugins"]
+
+Example:
+  [
+    "https://github.com/Blaze12345-deluxe/Buffy-Plugins",
+    "https://github.com/community/tools"
+  ]
+
+Repository URLs can be in any of these formats:
+  github.com/owner/repo
+  https://github.com/owner/repo
+  owner/repo (bare format, prepended with github.com/)
+
+
+================================================================================
+5.  ALIASES (aliases.json)
+================================================================================
+
+Path: ~/.buffy/aliases.json
+
+Format: JSON object where keys are names and values are either strings
+(simple aliases) or objects (conflict preferences).
+
+Simple alias format:
+  "ve": "pip-env"
+  Maps "buffy ve" to "buffy pip-env".
+
+Conflict preference format:
+  "pip-env": {
+    "preferred": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source": "github.com/Blaze12345-deluxe/Buffy-Plugins"
+  }
+  Caches the user's choice when two packages share the same name.
+
+Both types can coexist in the same file:
+  {
+    "ve": "pip-env",
+    "pip-env": {
+      "preferred": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "github.com/Blaze12345-deluxe/Buffy-Plugins"
+    }
+  }
+
+
+================================================================================
+6.  CACHE AND LOGS
+================================================================================
+
+Cache directory (~/.buffy/cache/):
+  Used for temporary downloads during package installation.
+  Cached repository indexes: cache/indexes/{owner}/{repo}/index.json.
+  Cleared with: buffy --clean
+
+Logs directory (~/.buffy/logs/):
+  Daily log files: YYYY-MM-DD.log
+  Uses tracing framework for structured logging.
+  Viewed with: buffy --logs
+  Cleared with: buffy --logs clear
+
+
+================================================================================
+7.  PACKAGE REPOSITORY INDEX (index.json)
+================================================================================
+
+Each repository has an index.json at its root listing all available packages.
+
+Fields per package entry:
+  name          Package name.
+  version       Latest version (YYYY.MM.DD).
+  description   Short description.
+  author        Package creator.
+  path          Relative path in the repository (e.g., "packages/pip-env").
+  dependencies  (object) system and packages dependency lists.
+  tags          Array of keywords for search and discovery.
+  commands      Array of command names this package provides.
+
+Top-level meta:
+  updated       ISO date of last index update.
+  package_count Total number of packages.
+
+Example:
+  {
+    "packages": [
+      {
+        "name": "pip-env",
+        "version": "2026.07.27",
+        "description": "Creates and manages Python virtual environments.",
+        "author": "Buffy Community",
+        "path": "packages/pip-env",
+        "dependencies": { "system": ["python3"], "packages": [] },
+        "tags": ["python", "venv"],
+        "commands": ["pip-env", "pip-env create", "pip-env activate"]
+      }
+    ],
+    "meta": {
+      "updated": "2026-07-28T00:00:00Z",
+      "package_count": 11
+    }
+  }
+
+
+================================================================================
+8.  PACKAGE MANIFEST (package.json)
+================================================================================
+
+Each package in a repository includes a package.json manifest.
+
+Required fields:
+  name        Package name.
+  version     Package version (YYYY.MM.DD).
+  description Short description.
+  author      Package author.
+  sha256      Per-file SHA-256 hashes (object) or legacy combined hash (string).
+
+Optional fields:
+  tags              Array of keywords.
+  dependencies      Object with system and packages arrays.
+  assets            Array of non-BSL files to include.
+  license           SPDX license identifier.
+  homepage          Package home page URL.
+
+Example:
+  {
+    "name": "pip-env",
+    "version": "2026.07.27",
+    "description": "Creates Python virtual environments.",
+    "author": "Buffy Community",
+    "sha256": { "create.bsl": "e3b0c44...", "activate.bsl": "a7ffc6f..." },
+    "tags": ["python", "venv"],
+    "dependencies": { "system": ["python3"], "packages": [] },
+    "license": "MIT"
+  }
+
+
+================================================================================
+9.  ENVIRONMENT VARIABLES
+================================================================================
+
+SHELL:
+  Shell for executing RUN commands.
+  Default: /bin/sh
+  Buffy uses this with -c flag for command execution.
+
+HOME:
+  User home directory.
+  Default: System home (e.g., /home/user).
+  Used to locate ~/.buffy/.
+
+GITHUB_TOKEN:
+  GitHub API token for private repository access.
+  Optional. Token must have "contents: read" permission.
+
+PATH:
+  System executable search path.
+  Used by dependency checker and discover feature.
+
+
+================================================================================
+10.  DEFAULT VALUES
+================================================================================
+
+  Default repository: https://github.com/Blaze12345-deluxe/Buffy-Plugins
+  Default config:     package_verification = true, color = true, show_progress = true
+  Default metadata:   OUTPUT = true (if not specified)
+  Default shell:      /bin/sh (if $SHELL not set)
+  Default author:     "unknown" (for local installs)
+  Default version:    Current date (for local installs)
+
+
+--- End of CONFIGURATION.txt ---

@@ -1,0 +1,342 @@
+================================================================================
+                           COMMANDS
+================================================================================
+
+Table of Contents
+-----------------
+1.  Usage
+2.  General Flags
+3.  Command Management Flags
+4.  Package Management Flags
+5.  Repository Management Flags
+6.  Alias Management Flags
+7.  System Flags
+8.  Logs and Shell Completion
+9.  BSL Command Resolution
+10. Shell Completion
+11. Examples
+
+
+================================================================================
+1.  USAGE
+================================================================================
+
+  buffy [FLAGS] [COMMAND [ARGS...]]
+
+Run "buffy --help" to see all available flags.
+Run "buffy <command>" to execute an installed BSL command.
+Run "buffy" with no arguments to see the welcome screen.
+
+
+================================================================================
+2.  GENERAL FLAGS
+================================================================================
+
+--help
+  Show all available flags and usage information.
+  Aliases: -h
+
+--version
+  Print the current version of Buffy.
+  Example output:
+    buffy v0.1.0
+
+--about
+  Display project information including features, version, and repository URL.
+  Example output:
+    Buffy CLI Automation Framework v0.1.0
+    A lightweight, cross-platform CLI automation framework.
+    ...
+    Repository: https://github.com/BuffyCLI
+
+
+================================================================================
+3.  COMMAND MANAGEMENT FLAGS
+================================================================================
+
+buffy <command> [args...]
+  Run an installed BSL command. Arguments are passed as ${1}, ${2}, etc.
+  Example: buffy pip-env create myproject
+
+--list (-l)
+  List all installed BSL commands.
+  Scans ~/.buffy/commands/ and displays package names and subcommands.
+  Example output:
+    pip-env (create, activate, destroy)
+    docker-tools
+
+--run <file.bsl> [args...]
+  Execute a .bsl file directly without installing it.
+  Useful for testing scripts before packaging.
+  Example: buffy --run ./script.bsl arg1 arg2
+
+--check <file.bsl>
+  Validate BSL syntax without executing.
+  Tokenizes and parses the file, reports any syntax errors.
+  Example output:
+    Syntax OK (3 statements)
+  Example: buffy --check script.bsl
+
+--validate <file.bsl>
+  Check that required metadata is present.
+  Reports warnings for missing VERSION, DESCRIPTION, and AUTHOR.
+  Example output:
+    Missing VERSION metadata
+    Missing AUTHOR metadata
+  Example: buffy --validate script.bsl
+
+--benchmark <file.bsl>
+  Measure execution time of a script.
+  Performs 1 warm-up run and 3 timed runs.
+  Reports per-run times, average, and total.
+  Example: buffy --benchmark script.bsl
+
+
+================================================================================
+4.  PACKAGE MANAGEMENT FLAGS
+================================================================================
+
+--install <packages...>
+  Install one or more packages. Accepts 4 source formats:
+    1. Local file:      buffy --install ./file.bsl
+    2. GitHub repo:     buffy --install github.com/user/repo package-name
+    3. Bulk from repo:  buffy --install github.com/user/repo @
+    4. By name:         buffy --install package-name
+  When installing by name, searches all configured repositories.
+  When using @, installs ALL packages from the specified repository.
+  Example: buffy --install pip-env docker-tools
+
+--uninstall <name>
+  Remove an installed package. Checks for dependent packages first
+  and warns if other packages depend on the one being removed.
+  Example: buffy --uninstall pip-env
+
+--update-packages
+  Update all installed packages to their latest versions.
+  Skips packages installed from local files (no remote source to check).
+  Example: buffy --update-packages
+
+--update-package <name>
+  Update a single package to the latest version.
+  Example: buffy --update-package pip-env
+
+--info <name>
+  Display metadata for an installed package.
+  Shows name, version, author, source, install date, SHA-256, deps.
+  Example: buffy --info pip-env
+
+--outdated
+  List packages with available updates.
+  Checks each installed package's version against the repository index.
+  Example output:
+    pip-env  2026.06.15  ->  2026.07.27  (official)
+  Example: buffy --outdated
+
+--verify <name>
+  Verify a package's SHA-256 integrity.
+  Performs per-file hash comparison against package.json and SHA.txt.
+  Example: buffy --verify pip-env
+
+--clean
+  Clear the download cache (~/.buffy/cache/).
+  Reports number of deleted files and freed disk space.
+  Example: buffy --clean
+
+
+================================================================================
+5.  REPOSITORY MANAGEMENT FLAGS
+================================================================================
+
+--repo list
+  List all configured repositories.
+  Example: buffy --repo list
+
+--repo add <url>
+  Add a new repository. Validates the URL by fetching its index.json.
+  Example: buffy --repo add github.com/community/tools
+
+--repo remove <url>
+  Remove a repository from the configuration.
+  Example: buffy --repo remove github.com/community/tools
+
+--repo refresh
+  Force-refresh all repository indexes (clear and re-fetch cache).
+  Shows package count for each repository.
+  Example: buffy --repo refresh
+
+--repo search <query>
+  Search for packages across all configured repositories.
+  Matches against package name, description, and tags (case-insensitive).
+  Example: buffy --repo search docker
+
+
+================================================================================
+6.  ALIAS MANAGEMENT FLAGS
+================================================================================
+
+--alias list
+  List all aliases and conflict preferences.
+  Example output:
+    Aliases:
+      ve  ->  pip-env
+    Conflict Preferences:
+      docker-tools  ->  a7ffc6f8bf1e...  (github.com/user/repo)
+
+--alias set <name> <target>
+  Create a shortcut alias. "buffy <name>" becomes "buffy <target>".
+  Example: buffy --alias set ve pip-env
+  Now "buffy ve" is equivalent to "buffy pip-env".
+
+--alias remove <name>
+  Remove an alias or conflict preference.
+  Example: buffy --alias remove ve
+
+--alias resolve <name>
+  Show cached conflict preference for a package.
+  Example: buffy --alias resolve pip-env
+
+
+================================================================================
+7.  SYSTEM FLAGS
+================================================================================
+
+--doctor
+  Run full system diagnostics.
+  Checks: home directory, config file, installed packages, repositories,
+  aliases, permissions, repository connectivity, SHA integrity, system
+  dependencies, BSL dependencies, and update status.
+  Example: buffy --doctor
+
+--repair
+  Detect and fix configuration issues.
+  Actions: ensure directories exist, regenerate corrupt configs, reset
+  corrupt aliases, remove orphaned registry entries, remove orphaned
+  directories, warn on SHA mismatches.
+  Example: buffy --repair
+
+--reset
+  Reset configuration to defaults.
+  Preserves installed packages and repositories. Only resets config.json.
+  Example: buffy --reset
+
+--discover
+  Auto-detect tools on your system and suggest matching packages.
+  Scans $PATH for 46 common development tools, searches repositories
+  for matching packages by tag, and displays suggestions.
+  Example: buffy --discover
+
+--update
+  Check for Buffy CLI updates. Displays download info if a new version
+  is available. Does NOT auto-update (uses GitHub API).
+  Example: buffy --update
+
+--check-update
+  Check if a newer version of Buffy is available without downloading.
+  Example: buffy --check-update
+
+
+================================================================================
+8.  LOGS AND SHELL COMPLETION
+================================================================================
+
+--logs
+  Show the latest execution log file from ~/.buffy/logs/.
+
+--logs clear
+  Delete all log files.
+
+--completion <shell>
+  Generate shell completion script. Supported shells:
+    bash, zsh, fish, elvish, powershell
+  Usage:
+    eval "$(buffy --completion bash)"    (add to ~/.bashrc to persist)
+    eval "$(buffy --completion zsh)"     (add to ~/.zshrc to persist)
+    eval "$(buffy --completion fish)"    (add to config.fish to persist)
+
+
+================================================================================
+9.  BSL COMMAND RESOLUTION
+================================================================================
+
+When no flags match, the remaining arguments are treated as a BSL command.
+The resolver walks ~/.buffy/commands/ using this priority:
+
+  1.  Exact file:        commands/<arg>/<arg>.bsl
+  2.  index.bsl:         commands/<arg>/<arg>/index.bsl (default subcommand)
+  3.  Directory name:    commands/<arg>/<arg>/<arg>.bsl
+  4.  First .bsl file    commands/<arg>/<arg>/
+      alphabetically
+  5.  Flat lookup:       Scan all subdirectories for <arg>.bsl
+  6.  Error:             "Command not found: <arg>"
+
+The flat lookup (priority 5) allows running commands by their name alone
+without specifying the package directory:
+  buffy cd-down    (instead of buffy file-system cd-down)
+
+Alias resolution happens BEFORE directory walking:
+  If "ve" is aliased to "pip-env", then:
+    buffy ve create  =>  buffy pip-env create
+
+
+================================================================================
+10.  SHELL COMPLETION
+================================================================================
+
+Shell completion generates completions for all CLI flags only. It does
+NOT generate completions for installed BSL commands or package names.
+BSL command completion would require runtime scanning of ~/.buffy/commands/
+and is not currently implemented.
+
+To enable completion:
+  bash:    eval "$(buffy --completion bash)"
+  zsh:     eval "$(buffy --completion zsh)"
+  fish:    buffy --completion fish | source
+
+Add the eval command to your shell's rc file to persist across sessions.
+
+
+================================================================================
+11.  EXAMPLES
+================================================================================
+
+Run system diagnostics:
+  buffy --doctor
+
+Install a package:
+  buffy --install pip-env
+
+Install from a specific repository:
+  buffy --install github.com/Blaze12345-deluxe/Buffy-Plugins pip-env
+
+Install all packages from a repository:
+  buffy --install github.com/Blaze12345-deluxe/Buffy-Plugins @
+
+Install from a local file:
+  buffy --install ./my-script.bsl
+
+Run a command with arguments:
+  buffy pip-env create myproject
+
+Run a .bsl file directly:
+  buffy --run ./script.bsl arg1 arg2
+
+List installed commands:
+  buffy --list
+
+Update all packages:
+  buffy --update-packages
+
+Search for packages:
+  buffy --repo search docker
+
+Create an alias:
+  buffy --alias set ve pip-env
+  buffy ve             # Same as "buffy pip-env"
+
+Check for CLI updates:
+  buffy --check-update
+
+Discover tools on your system:
+  buffy --discover
+
+--- End of COMMANDS.txt ---

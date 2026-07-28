@@ -1,0 +1,164 @@
+================================================================================
+                          PROJECT OVERVIEW
+================================================================================
+
+1.  WHAT IS BUFFY?
+2.  CORE IDEA
+3.  DESIGN PRINCIPLES
+4.  CORE COMPONENTS
+5.  TARGET PLATFORMS
+6.  WHY RUST?
+7.  LICENSE
+
+
+================================================================================
+1.  WHAT IS BUFFY?
+================================================================================
+
+Buffy is a CLI automation framework that lets anyone create and share terminal
+commands by writing simple text files called .bsl (Buffy Script Language)
+files. No Python, Bash, or programming experience is required.
+
+The framework consists of:
+  - A small Rust executable (the "Buffy CLI") that interprets .bsl files.
+  - A package manager for installing .bsl scripts from GitHub repositories.
+  - A simple, declarative scripting language (BSL) purpose-built for
+    automation tasks.
+  - A community plugin repository at:
+    https://github.com/Blaze12345-deluxe/Buffy-Plugins
+
+
+================================================================================
+2.  CORE IDEA
+================================================================================
+
+The core idea is simple:
+
+  buffy <command>
+
+This causes Buffy to locate a matching .bsl file, interpret it, execute every
+instruction in order, and return control to the user. Everything beyond the
+core runtime comes from installable packages.
+
+For example:
+  buffy pip-env         => Runs the pip-env .bsl script
+  buffy --install pip-env  => Downloads and installs the pip-env package
+
+The Buffy executable itself only handles:
+  1. Parsing CLI arguments.
+  2. Resolving commands to .bsl files.
+  3. Interpreting .bsl files (lexer, parser, executor).
+  4. Installing, updating, and managing packages.
+  5. Running diagnostics.
+  6. Managing configuration.
+
+ALL actual functionality (creating virtual environments, managing Docker,
+backing up files, etc.) comes from installed .bsl packages.
+
+
+================================================================================
+3.  DESIGN PRINCIPLES
+================================================================================
+
+LIGHTWEIGHT:
+  The executable is small. Nearly all functionality comes from BSL modules.
+  No heavy async runtime (no tokio). Synchronous HTTP via ureq.
+
+FAST:
+  Written in Rust. Compiled to native code. No interpretation overhead beyond
+  the BSL interpreter itself.
+
+MODULAR:
+  Each subsystem (BSL, packages, repos, config) is independent and testable.
+  Modules have clear dependency boundaries. See ARCHITECTURE.txt.
+
+SAFE:
+  BSL is intentionally limited -- it is not a general-purpose programming
+  language. Scripts are validated before execution. All packages are verified
+  via SHA-256 checksums before installation.
+
+EASY TO LEARN:
+  Declarative, human-readable syntax. A .bsl file can be opened and understood
+  immediately. Each line does one thing. Comments start with //.
+
+LINUX-FIRST:
+  Primary target is Linux. macOS is secondary. Windows is tertiary.
+  All command-line behavior is tested on Linux first.
+
+OPEN SOURCE:
+  Community-driven package sharing via GitHub repositories.
+  MIT licensed.
+
+
+================================================================================
+4.  CORE COMPONENTS
+================================================================================
+
+The system is composed of several independent subsystems:
+
+BSL LANGUAGE (Buffy Script Language):
+  A simple, interpreted scripting language. Not general-purpose -- purpose-
+  built for automation. Instructions include WRITE, RUN, WAIT, CLEAR, EXIT,
+  and OUTPUT toggle. Built-in variables include ${HOME}, ${USER}, ${PWD},
+  ${TEMP}, ${DATE}, ${TIME}, and ${1}-${N} for arguments.
+
+PACKAGE SYSTEM:
+  Packages are the distribution unit. Each package contains one or more .bsl
+  files plus a package.json manifest. Packages are distributed through GitHub
+  repositories. SHA-256 verification with per-file hashes ensures integrity.
+
+REPOSITORY SYSTEM:
+  Packages are distributed through GitHub repositories. No central registry.
+  Users configure which repositories to use. One default repository ships
+  with every installation. Private repositories are supported via GITHUB_TOKEN.
+
+COMMAND RESOLUTION:
+  Commands are resolved by walking ~/.buffy/commands/ using CLI arguments as
+  path segments. Resolution priority: exact file -> index.bsl -> directory
+  name -> first alphabetically -> flat lookup across packages -> error.
+
+NAME CONFLICT RESOLUTION:
+  If two packages share the same name from different authors (different SHA),
+  Buffy detects the conflict, prompts the user to choose, and caches the
+  choice in aliases.json.
+
+
+================================================================================
+5.  TARGET PLATFORMS
+================================================================================
+
+  PRIMARY:   Linux (all major distributions)
+  SECONDARY: macOS (most features work, limited testing)
+  TERTIARY:  Windows (limited support via cmd.exe)
+
+The BSL executor uses /bin/sh on Unix and cmd.exe on Windows. All paths use
+the dirs crate for cross-platform compatibility.
+
+
+================================================================================
+6.  WHY RUST?
+================================================================================
+
+Rust was chosen for the following reasons:
+
+  - Performance: Compiled native code, no runtime overhead.
+  - Safety: Memory safety without garbage collection.
+  - Small binaries: Optimized release builds with LTO and stripping.
+  - Excellent CLI tooling: clap for argument parsing, thiserror for errors.
+  - Cross-platform: Same codebase compiles for Linux, macOS, and Windows.
+  - Package ecosystem: High-quality crates for HTTP (ureq), hashing (sha2),
+    serialization (serde), and terminal output (colored, indicatif).
+
+The choice to use ureq (synchronous HTTP) rather than reqwest (async) was
+deliberate -- it avoids needing an async runtime, keeping the binary small
+and the code simple.
+
+
+================================================================================
+7.  LICENSE
+================================================================================
+
+Buffy is released under the MIT license. See the LICENSE file in the project
+root for the full text.
+
+--- End of PROJECT_OVERVIEW.txt ---

@@ -1,0 +1,675 @@
+================================================================================
+                             CODEBASE
+================================================================================
+
+This file provides a complete reference to every source file in the project,
+organized by module. Each file entry describes its purpose, key types, and
+public functions.
+
+================================================================================
+1.  src/main.rs
+================================================================================
+
+Purpose: Binary entry point.
+
+Contents:
+  fn main() -> anyhow::Result<()>
+    Calls buffy::run(). The entire application is in lib.rs.
+    This file is the thinnest possible wrapper.
+
+
+================================================================================
+2.  src/lib.rs
+================================================================================
+
+Purpose: Library root. Declares all modules and provides the run() function.
+
+Public:
+  fn run() -> anyhow::Result<()>
+    Entry point called from main(). Initializes directories, logging, and
+    dispatches to cli::dispatch::execute().
+
+Private:
+  fn init_logging() -> std::io::Result<()>
+    Creates ~/.buffy/logs/<date>.log and sets up tracing subscriber.
+
+Modules exported:
+  cli, config, diagnostic, logger, bsl, package, repository, resolver, error
+
+
+================================================================================
+3.  src/error.rs
+================================================================================
+
+Purpose: Unified error types for the entire project.
+
+Key types:
+  enum BuffyError
+    BslSyntax            - BSL parse error with path, line, message.
+    BslRuntime           - Runtime execution error with command, exit code, stderr.
+    UnknownInstruction   - Invalid BSL instruction with line number.
+    CommandNotFound      - Unresolvable BSL command.
+    PackageNotFound      - Package not in any repository.
+    PackageVerificationFailed - SHA-256 mismatch.
+    InvalidManifest      - Corrupt or missing package.json.
+    RepositoryConnection - Network failure contacting GitHub.
+    ConfigError          - Invalid configuration file.
+    Io                   - IO error wrapper (from std::io).
+    Json                 - JSON parse error (from serde_json).
+    Http                 - HTTP error (from ureq).
+    DependencyError      - Dependency resolution failure.
+    CircularDependency   - Circular dependency detected.
+    MissingSystemDependency - Required tool not on $PATH.
+
+  type Result<T> = std::result::Result<T, BuffyError>
+
+Each error variant includes a #[error] display message with user-facing tips.
+
+
+================================================================================
+4.  src/cli/args.rs
+================================================================================
+
+Purpose: CLI argument parsing via clap derive.
+
+Key type:
+  struct CliArgs
+    Fields: command, list, version, about, doctor, self_update, check_update,
+            install, uninstall, update_packages, update_package, info, outdated,
+            verify, clean, repo, logs, check, validate, run, benchmark, alias,
+            repair, reset, discover, completion
+
+All fields use clap's derive attributes with help text and examples.
+disable_version_flag = true (custom --version handling).
+trailing_var_arg = true for the command field (captures BSL command args).
+
+
+================================================================================
+5.  src/cli/dispatch.rs
+================================================================================
+
+Purpose: Routes CLI flags to appropriate subsystem handlers.
+
+Key function:
+  fn execute(args: CliArgs) -> Result<()>
+    This is the main dispatcher. It checks flags in priority order and calls:
+      print_version()        - Print version string.
+      print_about()          - Display project info.
+      show_welcome()         - Welcome screen with usage.
+      list_commands()        - Scan ~/.buffy/commands/.
+      run_doctor()           - Full system diagnostics.
+      self_update/check_update - Check GitHub for new releases.
+      clean_cache()          - Remove cached files.
+      repair()               - Fix configuration issues.
+      reset()                - Reset to defaults.
+      discover()             - System tool discovery.
+      install_packages()     - Package installation.
+      uninstall_package()    - Package removal.
+      update_all/one_package - Package updates.
+      show_info()            - Package metadata display.
+      show_outdated()        - List packages with updates.
+      verify_package()       - SHA-256 integrity check.
+      manage_repositories()  - Repo CRUD operations.
+      manage_aliases()       - Alias CRUD operations.
+      manage_logs()          - View/clear log files.
+      check_syntax()         - BSL syntax validation.
+      validate_metadata()    - Metadata check.
+      run_script()           - Execute .bsl directly.
+      benchmark_script()     - Timing measurement.
+      generate_completion()  - Shell completion output.
+      execute_bsl_command()  - Resolve + run BSL command.
+
+  fn check_for_update() -> Result<Option<(String, String)>>
+    Fetches GitHub API for latest release tag and URL.
+
+  fn repair() -> Result<()>
+    Multi-step repair: ensure dirs, check/fix configs, remove orphans,
+    verify SHA integrity.
+
+  fn manage_repositories(args: Vec<String>) -> Result<()>
+    Handles subcommands: list, add, remove, refresh, search.
+
+  fn manage_aliases(args: Vec<String>) -> Result<()>
+    Handles subcommands: list, set, remove, resolve.
+
+  fn benchmark_script(path: String) -> Result<()>
+    1 warm-up run + 3 timed runs with average reporting.
+
+  fn generate_completion(shell: String) -> Result<()>
+    Uses clap_complete to output shell completion script to stdout.
+
+
+================================================================================
+6.  src/resolver/tree.rs
+================================================================================
+
+Purpose: Resolves BSL commands by walking ~/.buffy/commands/.
+
+Key function:
+  fn resolve(args: &[String]) -> Result<PathBuf>
+    Resolution algorithm:
+      1. Resolve aliases for the first argument.
+      2. For each argument:
+           If last arg:
+             Try exact file: <arg>.bsl
+             Try index.bsl in <arg>/ directory
+             Try <arg>/<arg>.bsl (directory name match)
+             Try first .bsl alphabetically in <arg>/ directory
+             Try flat lookup across all package directories
+             Return CommandNotFound error
+           Else:
+             Walk into <arg> subdirectory
+
+
+================================================================================
+7.  src/bsl/ast.rs
+================================================================================
+
+Purpose: AST (Abstract Syntax Tree) type definitions for BSL.
+
+Key types:
+  struct BslScript
+    metadata: Vec<Metadata>
+    statements: Vec<Statement>
+
+  enum Metadata
+    Version(String), Author(String), Description(String), Output(bool)
+
+  enum Statement
+    Write(String), Run(String), Wait(WaitTarget), Clear, Exit, SetOutput(bool)
+
+  enum WaitTarget
+    Duration(u64), Prompt(String)
+
+  enum Token
+    Ident(String), StringLit(String), Number(u64), Equals, Newline, Eof
+
+Methods:
+  BslScript::get_output_mode() -> bool
+    Returns the OUTPUT setting from metadata. Defaults to true.
+
+
+================================================================================
+8.  src/bsl/lexer.rs
+================================================================================
+
+Purpose: Tokenizes raw BSL source text into a stream of tokens with line numbers.
+
+Key function:
+  fn tokenize(source: &str) -> Result<Vec<(usize, Token)>, BslError>
+    Line-by-line processing:
+      1. Strip BOM if present.
+      2. For each line: trim, skip empties and comments.
+      3. Strip inline comments (//).
+      4. Tokenize: split metadata on =, split statements on whitespace.
+      5. Append Newline and Eof tokens.
+
+Private functions:
+  tokenize_line(line, line_num) - Tokenizes a single non-empty line.
+  tokenize_value(value, line_num) - Parses a quoted string, number, or bare value.
+
+
+================================================================================
+9.  src/bsl/parser.rs
+================================================================================
+
+Purpose: Parses a token stream into a BslScript AST.
+
+Key function:
+  fn parse(tokens: Vec<(usize, Token)>) -> Result<BslScript, BslError>
+    Parsing phases:
+      1. Filter out Newline tokens.
+      2. Parse metadata section (VERSION, AUTHOR, DESCRIPTION, OUTPUT).
+      3. Switch to statement mode on first non-metadata instruction.
+      4. Parse WRITE, RUN, WAIT, CLEAR, EXIT, OUTPUT toggle.
+      5. Return BslScript or error.
+
+Private functions:
+  is_metadata_keyword(ident) -> bool
+  parse_metadata(tokens, pos, line) -> Result<Metadata, BslError>
+  parse_statement(tokens, pos, line) -> Result<Statement, BslError>
+  expect_string_arg(tokens, pos, line, instruction) -> Result<String, BslError>
+
+
+================================================================================
+10.  src/bsl/interpreter.rs
+================================================================================
+
+Purpose: Executes a parsed BSL script by walking the AST.
+
+Key function:
+  fn interpret(script: &BslScript, args: &[String]) -> Result<(), BslError>
+    Execution loop:
+      1. Read OUTPUT mode from metadata.
+      2. For each statement:
+           Write:      resolve variables, println.
+           Run:        resolve variables, execute shell command.
+           Wait:       sleep duration or read stdin prompt.
+           Clear:      ANSI escape sequence.
+           Exit:       break loop.
+           SetOutput:  toggle output_enabled flag.
+      3. If any RUN fails (non-zero exit), return CommandFailed error.
+
+Private function:
+  handle_wait(target: &WaitTarget) - Sleep or prompt user.
+
+
+================================================================================
+11.  src/bsl/executor.rs
+================================================================================
+
+Purpose: Spawns a shell process and executes commands.
+
+Key types:
+  struct ExecResult
+    stdout: String, stderr: String, exit_code: i32, success: bool
+
+Key function:
+  fn execute(command: &str, output_enabled: bool) -> Result<ExecResult, BslError>
+    Detects user shell from $SHELL env var (fallback: /bin/sh).
+    Spawns shell with -c flag.
+    If output_enabled: inherit stdout, pipe stderr.
+    If not output_enabled: null stdout, pipe stderr.
+    Returns ExecResult with exit code and captured output.
+
+  fn clear_screen()
+    Prints ANSI escape code: \x1B[2J\x1B[1;1H.
+
+
+================================================================================
+12.  src/bsl/variable.rs
+================================================================================
+
+Purpose: Expands ${VAR} placeholders in strings.
+
+Key types:
+  struct ExecutionContext
+    args: Vec<String>
+
+Key function:
+  fn resolve(text: &str, ctx: &ExecutionContext) -> String
+    Uses regex \$\{(\w+)\} to find variable references.
+    Looks up each match in: built-in vars -> numbered args.
+    Leaves unknown variables as-is.
+    Regex prevents false prefix matches (${HOME} won't match ${HOMEDIR}).
+
+Private function:
+  builtin_variables() -> HashMap<String, String>
+    Returns HOME, USER, PWD, TEMP, DATE, TIME from environment.
+
+
+================================================================================
+13.  src/bsl/error.rs
+================================================================================
+
+Purpose: BSL-specific error types.
+
+Key type:
+  enum BslError
+    Syntax { line, message }
+    UnknownInstruction { line, instruction }
+    Runtime { message }
+    CommandFailed { command, exit_code, stderr }
+    Io(io::Error)
+
+
+================================================================================
+14.  src/package/manifest.rs
+================================================================================
+
+Purpose: Package manifest (package.json) parsing and generation.
+
+Key types:
+  struct PackageManifest
+    name, version, description, author, sha256 (HashMap), tags,
+    dependencies (PackageDependencies), assets, license, homepage
+
+  struct PackageDependencies
+    system: Vec<String>, packages: Vec<String>
+
+  enum Sha256Format (private, for serde deserialization)
+    PerFile(HashMap<String, String>)
+    Legacy(String)
+
+Key functions:
+  validate(package_dir) -> Result<PackageManifest>
+    Reads package.json, checks required fields, verifies at least one .bsl.
+
+  generate_from_bsl(name, bsl_path) -> Result<PackageManifest>
+    Creates a minimal manifest for local file installs.
+    Sets version to current date, author to "unknown".
+
+  PackageManifest::get_file_hash(filename) -> Option<&str>
+    Returns per-file hash or legacy combined hash.
+
+  PackageManifest::is_per_file() -> bool
+    Returns true if no _combined key exists.
+
+  PackageManifest::combined_hash() -> String
+    Deterministic combined hash from sorted per-file hashes.
+    Used for conflict detection and storage.
+
+
+================================================================================
+15.  src/package/install.rs
+================================================================================
+
+Purpose: Installs packages from all sources.
+
+Key function:
+  fn install(args: &[String]) -> Result<()>
+    Determines source type from first argument:
+      ./ prefix      -> install_local()
+      github.com/... -> install_from_github()
+      @ wildcard     -> install_all_from_github()
+      plain name     -> install_from_repositories()
+
+Private functions:
+  install_local(path) - Installs from a local .bsl file.
+  install_from_github(repo, packages) - Installs from a GitHub repo.
+  install_all_from_github(repo) - Installs all packages from a repo.
+  install_from_repositories(packages) - Searches configured repos.
+  parse_github_repo(repo) - Extracts owner/name from URL.
+
+
+================================================================================
+16.  src/package/uninstall.rs
+================================================================================
+
+Purpose: Removes installed packages.
+
+Key function:
+  fn uninstall(name: &str) -> Result<()>
+    Checks for dependent packages, warns but continues.
+    Removes package directory from ~/.buffy/commands/.
+    Removes entry from installed.json.
+
+
+================================================================================
+17.  src/package/update.rs
+================================================================================
+
+Purpose: Updates installed packages to newer versions.
+
+Key functions:
+  fn update_all() -> Result<()>
+    Iterates all installed packages, skips local ones, updates each.
+
+  fn update_one(name: &str) -> Result<()>
+    Updates a single package by name.
+
+Private functions:
+  update_single(entry) -> Result<bool>
+    Compares versions, reinstalls if newer, updates installed.json.
+
+  resolve_source_url(entry) -> Result<String>
+    Converts source field to full repository URL.
+
+
+================================================================================
+18.  src/package/verify.rs
+================================================================================
+
+Purpose: SHA-256 package verification.
+
+Key functions:
+  fn verify_package(package_dir, name) -> Result<()>
+    Per-file verification or legacy combined verification.
+
+  fn verify_all() -> Result<Vec<(String, Result<()>)>>
+    Verifies all installed packages.
+
+  fn verify_system_deps(package_dir, name) -> Result<Vec<String>>
+    Checks system dependencies for an installed package.
+
+  fn verify_bsl_deps(package_dir, name) -> Result<Vec<String>>
+    Checks BSL package dependencies for an installed package.
+
+Private functions:
+  compute_file_hashes(package_dir) - Per-file SHA-256 for all .bsl files.
+  compute_combined_hash(package_dir) - Legacy combined hash.
+  read_sha_file(package_dir, name) - Parses SHA.txt (per-file or legacy).
+
+
+================================================================================
+19.  src/package/deps.rs
+================================================================================
+
+Purpose: Dependency resolution for packages.
+
+Key types:
+  struct DependencyReport
+    system_met, system_missing, bsl_installed, bsl_already_installed
+
+Key functions:
+  resolve_dependencies(deps, package_name, visited) -> Result<DependencyReport>
+    Checks circular deps, verifies system deps on $PATH, installs missing BSL deps.
+
+  check_system_dependency(name) -> bool
+    Checks if an executable exists on $PATH.
+
+  is_package_installed(name) -> bool
+    Checks if ~/.buffy/commands/<name>/ exists.
+
+  find_dependents(name) -> Result<Vec<String>>
+    Finds packages that declare a dependency on the given name.
+
+  verify_system_dependencies(package_dir) -> Result<Vec<String>>
+  verify_bsl_dependencies(package_dir) -> Result<Vec<String>>
+
+
+================================================================================
+20.  src/package/discover.rs
+================================================================================
+
+Purpose: System tool discovery.
+
+Key function:
+  fn discover() -> Result<()>
+    Checks 46 common tools on $PATH.
+    For each detected tool, searches repositories for matching packages.
+    Displays suggestions grouped by detected tool.
+
+Private function:
+  check_path_for(tool) -> bool
+    Checks if a binary exists on PATH.
+
+
+================================================================================
+21.  src/repository/source.rs
+================================================================================
+
+Purpose: Install source type parsing.
+
+Key types:
+  enum InstallSource
+    Local(String), GitHub { owner, repo }, Configured
+
+Key functions:
+  fn parse_source(arg: &str) -> InstallSource
+    ./ prefix -> Local. github.com/ URL -> GitHub. Otherwise -> Configured.
+
+  fn parse_github_url(url: &str) -> Option<(String, String)>
+    Accepts: github.com/owner/repo, https://github.com/owner/repo, owner/repo.
+
+
+================================================================================
+22.  src/repository/index.rs
+================================================================================
+
+Purpose: Repository index data structures.
+
+Key types:
+  struct RepositoryIndex
+    packages: Vec<PackageEntry>, meta: IndexMeta
+
+  struct PackageEntry
+    name, version, description, author, path, dependencies (DependenciesInfo),
+    tags, commands
+
+  struct IndexMeta
+    updated: String, package_count: u64
+
+Key functions:
+  RepositoryIndex::find_package(name) -> Option<&PackageEntry>
+  fn compare_versions(v1, v2) -> Ordering
+    Numeric comparison of YYYY.MM.DD version strings.
+
+
+================================================================================
+23.  src/repository/github.rs
+================================================================================
+
+Purpose: GitHub repository HTTP integration.
+
+Key functions:
+  fn fetch_index(owner, repo) -> Result<RepositoryIndex>
+  fn fetch_index_cached(owner, repo) -> Result<RepositoryIndex>
+  fn refresh_index(owner, repo) -> Result<RepositoryIndex>
+  fn validate_repository(url) -> Result<()>
+  fn search_across_repositories(query) -> Result<Vec<(String, PackageEntry)>>
+  fn find_across_repositories(name) -> Result<(String, PackageEntry)>
+  fn download_file(owner, repo, file_path, target) -> Result<()>
+
+Private:
+  cached_index_path(owner, repo) -> PathBuf
+    Returns ~/.buffy/cache/indexes/{owner}/{repo}/index.json.
+
+
+================================================================================
+24.  src/config/settings.rs
+================================================================================
+
+Purpose: Configuration file reading and writing.
+
+Key types:
+  struct Config
+    default_repositories, output_preferences (OutputPrefs),
+    update_settings (UpdateSettings), package_verification
+
+  struct InstalledEntry
+    name, version, installed, source, sha256, author, dependencies (Dependencies)
+
+Key functions:
+  read/write_config() - ~/.buffy/config.json
+  read/write_installed() - ~/.buffy/installed.json
+  read/write_repositories() - ~/.buffy/repositories.json
+
+
+================================================================================
+25.  src/config/buffy_home.rs
+================================================================================
+
+Purpose: ~/.buffy/ directory path helpers.
+
+Key functions:
+  fn buffy_home() -> PathBuf
+  fn commands_dir() -> PathBuf
+  fn packages_dir() -> PathBuf
+  fn cache_dir() -> PathBuf
+  fn logs_dir() -> PathBuf
+  fn ensure_directories() -> std::io::Result<()>
+
+Exported for tests:
+  static TEST_HOME_LOCK: Mutex<()> - Serializes HOME-dependent tests.
+
+
+================================================================================
+26.  src/config/paths.rs
+================================================================================
+
+Purpose: Thin wrappers around dirs crate.
+
+Key functions:
+  fn home_dir() -> PathBuf
+  fn buffy_dir() -> PathBuf  (= home_dir()/.buffy)
+
+
+================================================================================
+27.  src/config/aliases.rs
+================================================================================
+
+Purpose: Alias and conflict preference management.
+
+Key types:
+  struct Aliases
+    entries: HashMap<String, AliasValue>
+
+  enum AliasValue
+    Simple(String), ConflictPreference { preferred: String, source: String }
+
+Key functions:
+  fn resolve(name) -> Result<String> - Returns aliased name or original.
+  fn set_alias(name, target) - Creates a simple alias.
+  fn remove_alias(name) - Removes alias or conflict preference.
+  fn list_aliases() - Lists all simple aliases.
+  fn set_conflict_preference(name, sha, source) - Stores conflict choice.
+  fn resolve_conflict(name) - Returns preferred SHA + source.
+  fn list_conflicts() - Lists all conflict preferences.
+  fn detect_conflict(name, new_sha) - Checks installed.json for conflicts.
+
+
+================================================================================
+28.  src/logger/formatter.rs
+================================================================================
+
+Purpose: Terminal output formatting.
+
+Key functions:
+  fn write(message) - Standard output.
+  fn success(message) - Green checkmark + message.
+  fn error(message) - Red bold X + message (to stderr).
+  fn command_error(command, exit_code, stderr) - Formatted error block.
+  fn info(message) - Cyan info symbol + message.
+  fn warning(message) - Yellow warning symbol + message (to stderr).
+
+
+================================================================================
+29.  src/diagnostic/doctor.rs
+================================================================================
+
+Purpose: Full system diagnostics.
+
+Key types:
+  struct DoctorReport
+    checks: Vec<(String, bool)>
+
+Key functions:
+  fn run_doctor() -> Result<DoctorReport>
+  DoctorReport::all_passed() -> bool
+  DoctorReport::failed_count() -> usize
+
+Checks: home directory, config, installed registry, repos, aliases,
+permissions, connectivity, SHA integrity, system deps, BSL deps, updates.
+
+
+================================================================================
+30.  src/diagnostic/lint.rs
+================================================================================
+
+Purpose: BSL script linting.
+
+Key types:
+  enum Severity { Info, Warning, Error }
+  struct LintIssue { severity, message }
+
+Key function:
+  fn lint_script(source) -> Result<Vec<LintIssue>>
+    Checks: missing metadata, empty WRITE, empty RUN, destructive commands,
+    WAIT 0, excessive RUN count.
+
+
+================================================================================
+31.  src/diagnostic/validate.rs
+================================================================================
+
+Purpose: BSL metadata validation.
+
+Key types:
+  struct ValidationReport { warnings: Vec<String> }
+
+Key function:
+  fn validate_script(source) -> Result<ValidationReport>
+    Checks for missing VERSION, DESCRIPTION, AUTHOR metadata.
+
+--- End of CODEBASE.txt ---

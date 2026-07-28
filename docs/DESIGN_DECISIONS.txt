@@ -1,0 +1,221 @@
+================================================================================
+                          DESIGN_DECISIONS
+================================================================================
+
+This file documents the key architectural and design decisions made during
+development, along with the reasoning behind each one.
+
+================================================================================
+1.  SYNCHRONOUS HTTP (ureq) INSTEAD OF ASYNC (reqwest/tokio)
+================================================================================
+
+Decision: Use ureq for all HTTP requests. Do not use tokio or any async
+runtime.
+
+Reasoning:
+  - Buffy only makes occasional HTTP requests (fetching repository indexes,
+    downloading packages, checking for updates). There is no need for
+    concurrent or long-lived connections.
+  - Avoiding tokio keeps the binary smaller and compile times faster.
+  - The code remains simpler without async/await throughout the call stack.
+  - If parallel repository checking is needed in the future, async can be
+    introduced incrementally for just that feature.
+
+Trade-off:
+  - Downloading multiple packages simultaneously is not possible without
+    adding threads or async later.
+  - All network operations block the main thread.
+
+
+================================================================================
+2.  NO CENTRAL PACKAGE REGISTRY
+================================================================================
+
+Decision: Packages are distributed through GitHub repositories directly.
+There is no central package registry or package manager API.
+
+Reasoning:
+  - Avoids operating a central server, managing authentication, or handling
+    approval workflows.
+  - Users choose which repositories to trust, giving them control over their
+    package sources.
+  - Leverages GitHub's existing infrastructure for hosting, CDN, and
+    authentication.
+  - Private repositories work via GITHUB_TOKEN without needing a separate
+    registry.
+
+Trade-off:
+  - Package discovery requires knowing repository URLs or using --discover.
+  - No centralized search across all community packages.
+  - No built-in package ratings or download counts.
+
+
+================================================================================
+3.  BSL IS NOT SANDBOXED
+================================================================================
+
+Decision: BSL scripts can execute arbitrary shell commands via RUN. There is
+no sandbox, no permission system, and no runtime restriction.
+
+Reasoning:
+  - BSL is a tool for automating terminal commands. Sandboxing would prevent
+    legitimate use cases (creating files, managing Docker, installing
+    software).
+  - Security is provided at the package distribution layer (SHA-256
+    verification), not the script execution layer.
+  - Users are expected to inspect .bsl files before running them (they are
+    plain text in ~/.buffy/commands/).
+  - Adding a sandbox would significantly increase complexity for minimal
+    security benefit (determined attackers can always bypass it).
+
+Trade-off:
+  - A malicious .bsl file can do anything the user can do in their shell.
+  - Users must trust the repositories they add.
+  - Security relies on user education and package verification.
+
+
+================================================================================
+4.  DATE-BASED VERSIONING (YYYY.MM.DD)
+================================================================================
+
+Decision: Use date-based versioning instead of semantic versioning.
+
+Reasoning:
+  - Most packages are small scripts that don't have a formal API with
+    breaking changes.
+  - Date-based versions give an immediate sense of how current a package is.
+  - Simple numeric comparison works for determining which version is newer.
+  - A build number can be appended for multiple releases on the same day
+    (YYYY.MM.DD.N).
+
+Trade-off:
+  - Cannot express semantic versioning concepts (major/minor/patch).
+  - Not suitable for packages with formal API contracts.
+  - Two packages released on the same day require build numbers to
+    differentiate.
+
+
+================================================================================
+5.  PER-FILE SHA HASHES INSTEAD OF COMBINED HASHES
+================================================================================
+
+Decision: Use per-file SHA-256 hashes with backward-compatible support for
+legacy combined hashes.
+
+Reasoning:
+  - Combined hashes require regenerating the entire hash when adding any new
+    file to a package, breaking existing checksums.
+  - Per-file hashes allow adding new .bsl files without invalidating
+    existing hashes.
+  - Each file can be verified independently.
+  - Backward compatibility is maintained through the _combined sentinel key.
+
+Implementation:
+  - SHA.txt format: "<hash>  <file.bsl>" (per-file) or "<hash>  <name>"
+    (legacy combined).
+  - package.json sha256 field: object (per-file) or string (legacy).
+  - Verification detects the format by checking if the identifier ends with
+    ".bsl".
+
+
+================================================================================
+6.  ALIASES AND CONFLICT PREFERENCES IN ONE FILE
+================================================================================
+
+Decision: Store both simple aliases ("ve" -> "pip-env") and conflict
+preferences (package name -> preferred SHA) in the same aliases.json file
+using #[serde(untagged)].
+
+Reasoning:
+  - Both are name-to-value mappings, just with different value types.
+  - One file is simpler than two.
+  - #[serde(untagged)] allows serde to automatically distinguish between a
+    string value (simple alias) and an object value (conflict preference).
+  - The AliasValue enum is tried in order: Simple first, then
+    ConflictPreference.
+
+
+================================================================================
+7.  TEST HOME ISOLATION VIA MUTEX
+================================================================================
+
+Decision: Use a global Mutex (TEST_HOME_LOCK) to serialize tests that modify
+the HOME environment variable.
+
+Reasoning:
+  - Multiple tests modifying HOME in parallel causes race conditions (one
+    test's HOME setting leaks into another test).
+  - Rust's test runner runs tests in parallel by default.
+  - A mutex ensures only one HOME-dependent test runs at a time.
+  - Tests that don't touch HOME can still run in parallel.
+
+Implementation:
+  - buffy_home.rs exports TEST_HOME_LOCK: Mutex<()>.
+  - Individual test modules may also define their own local HOME_LOCK.
+  - Tests acquire the lock before setting HOME and release it when they
+    complete (the Mutex guard is dropped automatically).
+
+
+================================================================================
+8.  SYNCHRONOUS CACHE UPDATE FOR REPOSITORY INDEXES
+================================================================================
+
+Decision: Cache repository indexes locally and attempt to read from cache
+before fetching from network. Fall back to network if cache is missing or
+corrupt.
+
+Reasoning:
+  - Package installation typically checks multiple repositories, and fetching
+    indexes is the slowest operation.
+  - Caching avoids redundant network requests during a single session.
+  - The cache is simple (JSON files on disk) and human-readable for debugging.
+  - refresh_index() clears the cache for fresh fetches when needed.
+
+Trade-off:
+  - Cached indexes may be stale if a repository is updated between fetches.
+  - Users must run --repo refresh to get the latest index.
+  - No automatic cache invalidation or TTL.
+
+
+================================================================================
+9.  BSL ERROR HANDLING = STOP ON ERROR
+================================================================================
+
+Decision: If a RUN instruction fails (non-zero exit code), execution stops
+immediately. There is no try/catch or error recovery.
+
+Reasoning:
+  - Fail-fast behavior is safer for automation scripts.
+  - Continuing after a failed command could cause cascading failures.
+  - Simple to understand and implement.
+  - Future versions may add IF/ELSE and try/catch for more granular control.
+
+Trade-off:
+  - No way to handle expected failures gracefully.
+  - Scripts cannot retry failed commands.
+  - Users must ensure prerequisites are met before running scripts.
+
+
+================================================================================
+10.  COMMAND RESOLUTION FLAT LOOKUP
+================================================================================
+
+Decision: When normal directory-tree resolution fails, scan all package
+subdirectories for a .bsl file matching the command name.
+
+Reasoning:
+  - Users found it inconvenient to type "buffy file-system cd-down" when
+    they just wanted to navigate up a directory.
+  - The flat lookup makes single-command packages feel like first-class CLI
+    commands.
+  - Only triggers when at the commands_dir root (not inside a subdirectory),
+    so it doesn't interfere with multi-arg resolution.
+
+Trade-off:
+  - If multiple packages have the same filename, the first match is returned
+    silently.
+  - Slightly more filesystem I/O on failed resolution (scanning all
+    directories).
+  - No feedback to the user if multiple matches exist (no prompt to choose).
+
+--- End of DESIGN_DECISIONS.txt ---

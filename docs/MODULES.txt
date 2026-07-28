@@ -1,0 +1,316 @@
+================================================================================
+                              MODULES
+================================================================================
+
+This file provides detailed documentation for each Rust module in the project.
+Each module entry explains its public API, internal design, and important
+implementation details.
+
+================================================================================
+1.  cli MODULE
+================================================================================
+
+Location: src/cli/
+Files: mod.rs, args.rs, dispatch.rs
+
+Purpose:
+  The cli module handles user interaction. It parses command-line arguments
+  using clap, then routes each flag or command to the appropriate subsystem
+  handler.
+
+args.rs:
+  CliArgs is a clap derive struct with 25 fields. All flags use long names
+  (e.g., --install) with optional short aliases (-l for --list). The command
+  field uses trailing_var_arg = true to capture BSL command arguments.
+
+dispatch.rs:
+  execute() is the single entry point. It checks flags in a specific priority
+  order to ensure deterministic behavior. The priority is:
+    1. Version and info flags.
+    2. System flags (doctor, update, repair, etc.).
+    3. Package management flags.
+    4. Repository and alias management.
+    5. Script utility flags (check, run, benchmark).
+    6. Shell completion.
+    7. BSL command execution.
+    8. Welcome screen (if no arguments).
+
+  The repair() function is particularly important -- it handles multiple
+  types of configuration corruption and is the user's primary recovery tool.
+
+Limitations:
+  - Self-update only shows download instructions; it does not auto-upgrade.
+  - Benchmark runs 3 iterations with 1 warm-up, which may not be sufficient
+    for scripts with inconsistent execution times.
+
+
+================================================================================
+2.  resolver MODULE
+================================================================================
+
+Location: src/resolver/
+Files: mod.rs, tree.rs
+
+Purpose:
+  Resolves BSL commands by walking the ~/.buffy/commands/ directory tree and
+  matching CLI arguments to .bsl files.
+
+tree.rs:
+  The resolve() function implements the command resolution algorithm:
+    1. Check aliases for the first argument.
+    2. Walk the directory tree, matching each arg to a subdirectory.
+    3. For the final arg, try 5 resolution priorities (exact file, index.bsl,
+       directory name match, first alphabetically, flat lookup).
+    4. If nothing matches, return CommandNotFound.
+
+  The flat lookup (priority 5) scans all package subdirectories for a .bsl
+  file matching the command name. This allows "buffy cd-down" to find
+  "file-system/cd-down.bsl" without specifying the package name.
+
+Implementation details:
+  - Alias resolution happens BEFORE directory walking, not during.
+  - Only the first argument is checked for alias expansion.
+  - The flat lookup only triggers when at the commands_dir root.
+  - If multiple files match the flat lookup, the first one is returned.
+
+Limitations:
+  - Does not handle ambiguous flat-lookup matches (picks the first one).
+  - No caching of directory structure.
+  - No wildcard or glob matching in command arguments.
+
+
+================================================================================
+3.  bsl MODULE
+================================================================================
+
+Location: src/bsl/
+Files: mod.rs, ast.rs, lexer.rs, parser.rs, interpreter.rs, executor.rs,
+       variable.rs, error.rs
+
+Purpose:
+  The BSL interpreter core. Parses and executes .bsl scripts through a
+  multi-stage pipeline: lexer -> parser -> interpreter -> executor.
+
+ast.rs:
+  Defines the AST types used by all other BSL modules. BslScript contains
+  metadata (Version, Author, Description, Output) and statements (Write, Run,
+  Wait, Clear, Exit, SetOutput). Tokens are the intermediate representation
+  between lexer and parser.
+
+lexer.rs:
+  Line-based tokenizer. Each line is tokenized independently. Comments are
+  stripped. Empty lines are skipped. The lexer distinguishes metadata lines
+  (VERSION, AUTHOR, etc.) from instruction lines by checking the first word.
+
+parser.rs:
+  Builds an AST from tokens. Enforces metadata-before-statements ordering.
+  Validates that OUTPUT values are true/false. Returns UnknownInstruction
+  for invalid keywords. The parser switches from metadata mode to statement
+  mode on the first non-metadata instruction.
+
+interpreter.rs:
+  Walks the AST and executes each statement sequentially. Maintains the
+  current OUTPUT mode (can be toggled at runtime). If a RUN command fails,
+  execution stops immediately.
+
+executor.rs:
+  Spawns a child process using the user's shell. Uses $SHELL or /bin/sh.
+  Handles output mode: inherit stdout when enabled, pipe to null when
+  disabled. Stderr is always captured and shown on failure.
+
+variable.rs:
+  Expands ${VAR} patterns using regex. Built-in variables (HOME, USER, etc.)
+  are checked first, then numbered arguments (${1}, ${2}), then the original
+  text is left as-is. The regex approach prevents prefix false matches.
+
+Implementation details:
+  - Tokens include line numbers for accurate error reporting.
+  - The lexer handles BOM (Byte Order Mark) stripping.
+  - Inline comments (// after an instruction) are stripped.
+  - The executor uses SHELL env var, not hard-coded /bin/sh.
+
+Assumptions:
+  - The shell accepts -c for inline command execution.
+  - The system has /bin/sh available as a fallback.
+
+
+================================================================================
+4.  package MODULE
+================================================================================
+
+Location: src/package/
+Files: mod.rs, manifest.rs, install.rs, uninstall.rs, update.rs, verify.rs,
+       deps.rs, discover.rs
+
+Purpose:
+  Package management -- installing, updating, verifying, and discovering
+  BSL packages from various sources.
+
+install.rs:
+  Supports 4 installation sources: local files, GitHub repositories (single
+  or bulk @), and configured repository search. The install flow includes
+  downloading, SHA verification, conflict detection, dependency resolution,
+  and registration.
+
+manifest.rs:
+  PackageManifest struct with backward-compatible SHA-256 deserialization.
+  Accepts both per-file hashes (HashMap) and legacy combined hashes (string).
+
+verify.rs:
+  Per-file SHA-256 verification. Each .bsl file is hashed individually and
+  compared against both package.json entries and SHA.txt entries. Falls back
+  to legacy combined verification for old-format packages.
+
+deps.rs:
+  Resolves system dependencies (checks $PATH) and BSL package dependencies
+  (auto-installs missing packages). Detects circular dependencies via a
+  visited set. Dependency installation retries once on failure.
+
+discover.rs:
+  Scans $PATH for 46 common tools and searches repositories for matching
+  packages by tag. Displays suggestions for detected tools.
+
+Implementation details:
+  - SHA.txt parsing distinguishes per-file format (<hash> <file.bsl>) from
+    legacy format (<hash> <name>) by checking if the identifier ends with
+    ".bsl".
+  - Package files excluded from hashing: package.json and {name}-SHA.txt.
+  - Version comparison is numeric by component (YYYY.MM.DD).
+  - Local installs use current date as version and "unknown" as author.
+
+Limitations:
+  - No support for installing from git tags or branches (always uses main).
+  - No support for package pinning to a specific version.
+  - Dependency retry is limited to one attempt.
+
+
+================================================================================
+5.  repository MODULE
+================================================================================
+
+Location: src/repository/
+Files: mod.rs, source.rs, index.rs, github.rs
+
+Purpose:
+  GitHub repository integration for package distribution. Handles fetching
+  repository indexes, downloading package files, and searching across
+  multiple repositories.
+
+github.rs:
+  Uses ureq for synchronous HTTP requests to raw.githubusercontent.com.
+  Implements local caching of repository indexes with automatic fallback
+  to network if cache is missing or corrupt. The refresh_index function
+  clears the cache and forces a fresh fetch.
+
+source.rs:
+  Parses install source identifiers. Accepts URLs in formats: ./path,
+  github.com/owner/repo, https://github.com/owner/repo, and bare owner/repo.
+
+Implementation details:
+  - Cached indexes stored at ~/.buffy/cache/indexes/{owner}/{repo}/index.json.
+  - Search matches against name, description, and tags (case-insensitive).
+  - find_across_repositories() tries cached indexes first, then fresh fetches.
+  - GitHub URLs are converted to raw.githubusercontent.com for downloads.
+
+Limitations:
+  - Only supports GitHub repositories (not GitLab, Bitbucket, etc.).
+  - No pagination for large repositories (all packages in one index.json).
+  - No authentication for GitHub API rate limiting.
+
+
+================================================================================
+6.  config MODULE
+================================================================================
+
+Location: src/config/
+Files: mod.rs, settings.rs, buffy_home.rs, paths.rs, aliases.rs
+
+Purpose:
+  Configuration file management, directory path resolution, and alias
+  management.
+
+settings.rs:
+  Reads and writes JSON config files: config.json, installed.json,
+  repositories.json. Uses serde for serialization. Missing files return
+  sensible defaults (empty Vec for installed, default repo for repos).
+
+buffy_home.rs:
+  Functions for ~/.buffy/ subdirectory paths. ensure_directories() creates
+  all required directories on startup. Exports TEST_HOME_LOCK for test
+  serialization.
+
+aliases.rs:
+  Manages the aliases.json file which stores both simple command aliases
+  ("ve" -> "pip-env") and conflict preferences (package name -> preferred
+  SHA + source). Uses #[serde(untagged)] to handle both formats.
+
+Implementation details:
+  - Default repository: https://github.com/Blaze12345-deluxe/Buffy-Plugins.
+  - Aliases are resolved BEFORE directory walking (in the resolver).
+  - Conflict preferences are set during install, checked during install.
+  - The Aliases struct uses #[serde(flatten)] to store mixed types.
+
+Assumptions:
+  - HOME directory exists and is writable.
+  - JSON files are well-formed (corrupt files cause ConfigError).
+
+
+================================================================================
+7.  logger MODULE
+================================================================================
+
+Location: src/logger/
+Files: mod.rs, formatter.rs
+
+Purpose:
+  Terminal output formatting with colored symbols.
+
+formatter.rs:
+  Six output functions: write (plain), success (green checkmark), error (red X
+  to stderr), warning (yellow warning to stderr), info (cyan info symbol),
+  command_error (formatted error block with command, exit code, stderr).
+
+Implementation details:
+  - Uses the colored crate for ANSI terminal colors.
+  - error() and warning() write to stderr.
+  - write() and info() and success() write to stdout.
+  - command_error() formats a multi-line error display.
+
+Limitations:
+  - Colors are always enabled (no --no-color flag).
+  - No log level filtering (all messages are always shown).
+
+
+================================================================================
+8.  diagnostic MODULE
+================================================================================
+
+Location: src/diagnostic/
+Files: mod.rs, doctor.rs, lint.rs, validate.rs
+
+Purpose:
+  System health checks, BSL linting, and metadata validation.
+
+doctor.rs:
+  run_doctor() performs 11 checks: home directory existence, config file
+  validity, installed packages registry, repository configuration, aliases
+  file, directory permissions, repository connectivity (HTTP fetch), package
+  SHA integrity, system dependencies, BSL dependencies, and update status.
+
+lint.rs:
+  lint_script() analyzes a BSL script for issues: missing metadata, empty
+  WRITE/RUN, destructive commands (rm -rf /), WAIT 0, excessive RUN count.
+  Returns a list of issues with severity levels (Info, Warning, Error).
+
+validate.rs:
+  validate_script() checks for missing VERSION, DESCRIPTION, and AUTHOR
+  metadata. Returns warnings but does not prevent execution.
+
+Implementation details:
+  - Doctor checks are independent (one failure doesn't stop others).
+  - Connectivity check uses cached fetch before direct fetch.
+  - SHA integrity check verifies all installed packages.
+  - Linter detects "rm -rf /" and "rm -rf /*" as potentially destructive.
+  - Linter warns at 20+ RUN statements for maintainability.
+
+--- End of MODULES.txt ---

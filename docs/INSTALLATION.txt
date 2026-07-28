@@ -1,0 +1,148 @@
+================================================================================
+                            INSTALLATION
+================================================================================
+
+Table of Contents
+-----------------
+1.  System Requirements
+2.  Option 1: Install from Source
+3.  Option 2: Install via Cargo
+4.  Option 3: Pre-built Binary
+5.  Post-Installation Setup
+6.  First Run
+7.  Environment Variables
+
+
+================================================================================
+1.  SYSTEM REQUIREMENTS
+================================================================================
+
+To build from source:
+  - Rust 1.70+ (install via https://rustup.rs/)
+  - A C compiler (gcc, clang, or MSVC) for linking
+  - git (to clone the repository)
+
+Supported platforms:
+  - Linux (primary target, fully tested)
+  - macOS (secondary, most features work)
+  - Windows (tertiary, limited support via cmd.exe)
+
+Disk space:
+  - ~500 MB for Rust toolchain + dependencies
+  - ~10 MB for the compiled release binary
+
+
+================================================================================
+2.  OPTION 1: INSTALL FROM SOURCE (RECOMMENDED)
+================================================================================
+
+Step 1: Clone the repository:
+  git clone https://github.com/Blaze12345-deluxe/BuffyCLI.git
+  cd BuffyCLI
+
+Step 2: Build the release binary:
+  cargo build --release
+
+Step 3: Install globally:
+  sudo cp target/release/buffy /usr/local/bin/
+
+Step 4: Verify the installation:
+  buffy --version
+
+Expected output:
+  buffy v0.1.0
+
+
+================================================================================
+3.  OPTION 2: INSTALL VIA CARGO
+================================================================================
+
+If you have Rust installed, you can install Buffy directly from the
+repository:
+
+  cargo install --git https://github.com/Blaze12345-deluxe/BuffyCLI.git
+
+This downloads the source, compiles it, and places the binary in
+~/.cargo/bin/buffy. Make sure ~/.cargo/bin is in your PATH.
+
+
+================================================================================
+4.  OPTION 3: PRE-BUILT BINARY
+================================================================================
+
+Download a pre-built binary from the releases page:
+  https://github.com/Blaze12345-deluxe/BuffyCLI/releases
+
+Example for Linux AMD64:
+  wget https://github.com/Blaze12345-deluxe/BuffyCLI/releases/download/v0.1.0/buffy-linux-amd64
+  chmod +x buffy-linux-amd64
+  sudo mv buffy-linux-amd64 /usr/local/bin/buffy
+
+Verify the checksum (if provided) before running the binary.
+
+
+================================================================================
+5.  POST-INSTALLATION SETUP
+================================================================================
+
+Shell Completion (recommended):
+  eval "$(buffy --completion bash)"     # Bash
+  eval "$(buffy --completion zsh)"      # Zsh
+  buffy --completion fish | source      # Fish
+
+To make completion permanent, add the eval line to your shell's rc file:
+  echo 'eval "$(buffy --completion bash)"' >> ~/.bashrc
+
+Install your first package:
+  buffy --install pip-env
+
+Run a system check:
+  buffy --doctor
+
+
+================================================================================
+6.  FIRST RUN
+================================================================================
+
+When you run "buffy" for the first time, it automatically:
+
+1. Creates the ~/.buffy/ directory structure:
+     ~/.buffy/commands/    - Installed .bsl files
+     ~/.buffy/packages/    - Cached package metadata
+     ~/.buffy/cache/       - Temporary downloads and cached indexes
+     ~/.buffy/logs/        - Daily execution logs
+
+2. Creates ~/.buffy/logs/<date>.log for daily logging.
+
+3. Shows the welcome screen with usage hints:
+     Buffy CLI Automation Framework
+     A lightweight framework for creating and sharing terminal commands.
+     ...
+     Example: buffy pip-env
+
+
+================================================================================
+7.  ENVIRONMENT VARIABLES
+================================================================================
+
+SHELL:
+  The shell used for executing RUN commands in BSL scripts.
+  Default: /bin/sh (if not set).
+  Buffy detects the user's preferred shell and uses it with the -c flag.
+
+HOME:
+  The user's home directory. Used to locate ~/.buffy/.
+  Default: System home directory.
+  The Buffy home path is: $HOME/.buffy/
+
+GITHUB_TOKEN:
+  GitHub API token for accessing private repositories.
+  Optional. Only needed for private GitHub repos.
+  The token must have "contents: read" permission.
+
+PATH:
+  Used by the system dependency checker and the discover feature.
+  Buffy scans PATH for executables to verify system dependencies
+  and detect installed development tools.
+
+--- End of INSTALLATION.txt ---

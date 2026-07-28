@@ -1,0 +1,351 @@
+================================================================================
+                          ARCHITECTURE
+================================================================================
+
+Table of Contents
+-----------------
+1.  Project Layout
+2.  Crate Dependencies
+3.  Module Architecture
+4.  Dependency Graph
+5.  Data Flows
+6.  Configuration File Formats
+7.  Error Handling Strategy
+8.  Testing Strategy
+
+
+================================================================================
+1.  PROJECT LAYOUT
+================================================================================
+
+buffy/
+  Cargo.toml              Single crate config with all dependencies.
+  Cargo.lock              Dependency lockfile.
+  README.md               Quick start guide.
+  CONTRIBUTING.md         Contribution guidelines.
+  CHANGELOG.md            Version history.
+  SECURITY.md             Security vulnerability policy.
+
+  src/
+    main.rs               Entry point. Calls buffy::run().
+    lib.rs                Library root. run(), init_logging(), module exports.
+    error.rs              BuffyError enum with thiserror derives.
+
+    cli/                  CLI parsing and command dispatch.
+      mod.rs              Module root.
+      args.rs             CliArgs struct (clap derive).
+      dispatch.rs         execute() mapping flags to handlers.
+
+    resolver/             Command resolution.
+      mod.rs              Module root.
+      tree.rs             resolve() - directory walk with alias resolution.
+
+    bsl/                  BSL interpreter core.
+      mod.rs              Module root. Re-exports parse() and interpret().
+      ast.rs              Type definitions: BslScript, Metadata, Statement, Token.
+      lexer.rs            tokenize() - text to tokens with line numbers.
+      parser.rs           parse() - tokens to AST with validation.
+      interpreter.rs      interpret() - walk AST, dispatch to handlers.
+      executor.rs         execute() - spawn shell, capture output.
+      variable.rs         resolve() - ${VAR} expansion with regex.
+      error.rs            BslError enum.
+
+    package/              Package management.
+      mod.rs              Module root.
+      manifest.rs         PackageManifest struct, validate(), generate_from_bsl().
+      install.rs          install() - all 4 installation sources.
+      uninstall.rs        uninstall() - remove and deregister.
+      update.rs           update_all(), update_one() - version check + reinstall.
+      verify.rs           verify_package() - SHA-256 per-file verification.
+      deps.rs             Dependency resolution (system + BSL packages).
+      discover.rs         discover() - system scan for tool detection.
+
+    repository/           GitHub repository integration.
+      mod.rs              Module root with re-exports.
+      source.rs           InstallSource enum, parse_github_url().
+      index.rs            RepositoryIndex struct, compare_versions().
+      github.rs           fetch_index(), download_file(), search_across_repos().
+
+    config/               Configuration file management.
+      mod.rs              Module root.
+      settings.rs         Config, InstalledEntry, read/write JSON files.
+      buffy_home.rs       ~/.buffy/ directory functions.
+      paths.rs            Platform path resolution via dirs crate.
+      aliases.rs          Aliases and conflict preferences.
+
+    logger/               Terminal output and logging.
+      mod.rs              Module root.
+      formatter.rs        write(), success(), error(), info(), warning().
+
+    diagnostic/           System checks and diagnostics.
+      mod.rs              Module root.
+      doctor.rs           run_doctor() - full system diagnostics.
+      lint.rs             lint_script() - BSL syntax and style checks.
+      validate.rs         validate_script() - metadata completeness checks.
+
+  tests/
+    integration/          Integration tests.
+      bsl_lexer_test.rs
+      bsl_parser_test.rs
+      bsl_pipeline_test.rs
+      resolver_test.rs
+      config_test.rs
+
+    fixtures/             Test fixtures.
+      sample-scripts/           8 .bsl files for parser/interpreter tests.
+      mock-repository/          2 mock packages (pip-env, git-tools).
+      mock-buffy-home/          Mock ~/.buffy/ with config files.
+
+  examples/               9 real-world .bsl example scripts.
+  docs/                   Project documentation (all .txt files).
+  .github/workflows/      CI pipeline configuration.
+
+
+================================================================================
+2.  CRATE DEPENDENCIES
+================================================================================
+
+Crate dependencies are defined in Cargo.toml. The key decisions:
+
+clap and clap_complete:
+  CLI argument parsing and shell completion generation. clap is the industry
+  standard for Rust CLI tools. clap_complete integrates directly with clap's
+  Command API for shell completion output.
+
+serde and serde_json:
+  JSON serialization for all configuration files (config.json, installed.json,
+  repositories.json, aliases.json) and package manifests (package.json).
+
+ureq (NOT reqwest):
+  Synchronous HTTP client. Deliberately chosen over reqwest to avoid needing
+  an async runtime. Used for all GitHub API calls (fetching indexes,
+  downloading packages, checking for updates).
+
+sha2:
+  SHA-256 hashing for package verification. Direct hash computation without
+  higher-level crypto abstractions.
+
+thiserror and anyhow:
+  thiserror for deriving Error implementations on BuffyError and BslError.
+  anyhow for top-level error handling in main().
+
+dirs:
+  Cross-platform home directory resolution. Used to find ~/.buffy/.
+
+colored:
+  Terminal color output. Simple API for green checkmarks, red X marks,
+  yellow warnings, and cyan info labels.
+
+chrono:
+  Timestamps for log filenames, date-based versioning, install dates.
+
+indicatif:
+  Progress bars and spinners for package installation operations.
+
+regex-lite (NOT full regex):
+  Lighter regex engine for ${VAR} expansion. The only regex pattern is
+  \$\{\w+\}, which doesn't need the full regex crate.
+
+tempfile:
+  Temporary directories for package download and extraction.
+
+tracing and tracing-subscriber:
+  Structured logging framework. Writes daily log files to ~/.buffy/logs/.
+
+
+================================================================================
+3.  MODULE ARCHITECTURE
+================================================================================
+
+The codebase is organized into 8 subsystems plus the error module:
+
+BASE LAYERS (depend on nothing except std/crates):
+  config          - Configuration file I/O, path resolution.
+  logger          - Terminal output formatting.
+  bsl             - BSL language interpreter (lexer, parser, executor).
+  error           - Error types used by everyone.
+
+UPPER LAYERS (depend on base layers):
+  resolver        - Command resolution (depends on config).
+  cli             - CLI parsing and dispatch (depends on everything).
+  package         - Package management (depends on config, repository, bsl).
+  repository      - GitHub integration (depends on config).
+  diagnostic      - System checks (depends on config, package, bsl).
+
+This layering prevents circular dependencies and allows testing base layers
+in isolation.
+
+
+================================================================================
+4.  DEPENDENCY GRAPH
+================================================================================
+
+main.rs  -->  lib.rs  -->  cli::dispatch  -->  config, resolver, bsl, package,
+                                                repository, logger, diagnostic
+
+Specific module imports:
+
+  cli          imports: config, resolver, bsl, package, repository, logger,
+                        diagnostic
+  resolver     imports: config, error
+  bsl::lexer   imports: bsl::ast, bsl::error
+  bsl::parser  imports: bsl::lexer, bsl::ast, bsl::error
+  bsl::interp  imports: bsl::parser, bsl::executor, bsl::variable, bsl::error
+  bsl::exec    imports: bsl::error  (and std::process)
+  bsl::var     imports: (none besides std and regex-lite)
+  package::*   imports: config, repository, bsl, error, logger
+  repository   imports: config, error
+  config       imports: error
+  diagnostic   imports: config, package, bsl, repository, logger
+  logger       imports: colored
+  error        imports: thiserror
+
+
+================================================================================
+5.  DATA FLOWS
+================================================================================
+
+5.1  General Execution Flow
+
+  User types "buffy pip-env create project"
+    -> main() calls lib::run()
+      -> ensure_directories() creates ~/.buffy/ if needed
+      -> init_logging() opens daily log file
+      -> CliArgs::parse() parses arguments
+      -> cli::dispatch::execute() routes to handler
+        -> No flags match, so treat as BSL command
+          -> resolver::tree::resolve(["pip-env", "create"])
+            -> alias resolution on first arg
+            -> walk ~/.buffy/commands/pip-env/create.bsl
+          -> bsl::interpreter::run(script, ["project"])
+            -> lexer: tokenize source text
+            -> parser: build AST from tokens
+            -> interpreter: walk AST, execute each instruction
+              -> WRITE "text"  =>  println!(variable::resolve(text))
+              -> RUN "cmd"     =>  executor::execute(cmd, output_mode)
+              -> WAIT 5        =>  thread::sleep(5s)
+              -> EXIT          =>  break
+
+5.2  Package Install Flow
+
+  User types "buffy --install pip-env"
+    -> dispatch calls package::install::install(["pip-env"])
+      -> install_from_repositories(["pip-env"])
+        -> read ~/.buffy/repositories.json
+        -> for each repository URL:
+          -> repository::github::fetch_index_cached(owner, repo)
+            -> check ~/.buffy/cache/indexes/ for cached index
+            -> if missing or corrupt, fetch from GitHub and cache
+          -> index.find_package("pip-env")
+          -> install_from_github(repo_url, ["pip-env"])
+            -> download package.json, SHA.txt, .bsl files to temp dir
+            -> verify_package() => SHA-256 per-file comparison
+            -> detect_conflict() => check installed.json for name conflicts
+            -> resolve_dependencies() => system + BSL deps
+            -> copy files to ~/.buffy/commands/pip-env/
+            -> register in installed.json
+
+5.3  BSL Script Processing Pipeline
+
+  Source Text (.bsl file)
+    -> LEXER: tokenize() strips comments, produces Vec<(usize, Token)>
+    -> PARSER: parse() builds BslScript { metadata, statements }
+    -> VARIABLE RESOLVER: resolve() expands ${HOME}, ${USER}, ${1}, etc.
+    -> INTERPRETER: interpret() walks statements sequentially
+    -> EXECUTOR: execute() spawns shell for RUN commands, captures I/O
+
+
+================================================================================
+6.  CONFIGURATION FILE FORMATS
+================================================================================
+
+All configuration files are JSON and stored under ~/.buffy/:
+
+config.json:
+  {
+    "default_repositories": [],
+    "output_preferences": { "color": true, "show_progress": true },
+    "update_settings": { "check_on_startup": true, "auto_update": false },
+    "package_verification": true
+  }
+
+installed.json:
+  [
+    {
+      "name": "pip-env",
+      "version": "2026.07.27",
+      "installed": "2026-07-27",
+      "source": "github.com/Blaze12345-deluxe/Buffy-Plugins",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "author": "Buffy Community",
+      "dependencies": { "system": ["python3"], "packages": [] }
+    }
+  ]
+
+repositories.json:
+  [
+    "https://github.com/Blaze12345-deluxe/Buffy-Plugins"
+  ]
+
+aliases.json:
+  {
+    "ve": "pip-env",
+    "pip-env": {
+      "preferred": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "github.com/Blaze12345-deluxe/Buffy-Plugins"
+    }
+  }
+
+
+================================================================================
+7.  ERROR HANDLING STRATEGY
+================================================================================
+
+The project uses two error types:
+
+BuffyError (src/error.rs):
+  Top-level errors for CLI dispatch and package management. Each variant
+  includes a user-facing tip in its display message. Common variants:
+    CommandNotFound        - suggests --list or --repo search
+    PackageNotFound        - suggests --repo search or --repo add
+    ConfigError            - suggests --repair or --reset
+    CircularDependency     - suggests checking dependency declarations
+    BslRuntime             - suggests OUTPUT = true to see command output
+    PackageVerificationFailed - suggests reinstalling or updating
+
+BslError (src/bsl/error.rs):
+  BSL-specific errors for the interpreter. Variants:
+    Syntax                 - parse errors with line numbers
+    UnknownInstruction     - rejected with available instructions list
+    CommandFailed          - shows command, exit code, stderr
+    Runtime                - general runtime error
+    Io                     - IO error wrapper
+
+Error propagation:
+  Library functions return Result<T, BuffyError> or Result<T, BslError>.
+  Main uses anyhow::Result for top-level handling.
+  BSL runtime errors stop execution immediately.
+
+
+================================================================================
+8.  TESTING STRATEGY
+================================================================================
+
+Unit tests are inline in each module (#[cfg(test)] mod tests).
+Integration tests are in tests/integration/.
+Test fixtures are in tests/fixtures/.
+
+Test isolation:
+  - tempfile::TempDir for each test's home directory.
+  - TEST_HOME_LOCK mutex serializes tests that modify HOME.
+  - No test writes to the real ~/.buffy/.
+
+Coverage:
+  BSL: 20+ tests (lexer, parser, pipeline, variables, executor).
+  Resolver: 8 tests (all resolution paths + flat lookup).
+  Package: 15+ tests (manifest, verify, deps, discover).
+  Repository: 10+ tests (source parsing, index, cached fetch).
+  Config: 8 tests (buffy_home, aliases, settings).
+  Diagnostic: 6 tests (lint, validate).
+
+--- End of ARCHITECTURE.txt ---

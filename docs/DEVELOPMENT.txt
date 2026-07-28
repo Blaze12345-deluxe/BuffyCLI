@@ -1,0 +1,198 @@
+================================================================================
+                            DEVELOPMENT
+================================================================================
+
+Table of Contents
+-----------------
+1.  Prerequisites
+2.  Building
+3.  Running
+4.  Testing
+5.  Coding Standards
+6.  Git Workflow
+7.  CI Pipeline
+8.  Release Process
+
+
+================================================================================
+1.  PREREQUISITES
+================================================================================
+
+To develop Buffy, you need:
+
+  - Rust 1.70+: Install via https://rustup.rs/
+  - A C compiler for linking (gcc, clang, etc.)
+  - git for version control
+  - Linux (primary development platform)
+
+Recommended tools:
+  - rust-analyzer (LSP for IDE support)
+  - clippy (Rust linter, included with rustup)
+  - rustfmt (code formatter, included with rustup)
+
+
+================================================================================
+2.  BUILDING
+================================================================================
+
+Debug build (fast, for development):
+  cargo build
+
+Release build (optimized, stripped):
+  cargo build --release
+
+The release profile (Cargo.toml) uses:
+  opt-level = 2
+  strip = true
+  lto = true
+
+Check for warnings:
+  cargo clippy -- -D warnings
+
+Format code:
+  cargo fmt
+
+
+================================================================================
+3.  RUNNING
+================================================================================
+
+From the project root:
+  cargo run -- --version
+  cargo run -- --help
+  cargo run -- --run examples/system-info.bsl
+  cargo run -- --install ./pip-env.bsl
+  cargo run -- --list
+  cargo run -- --doctor
+
+The "--" separates cargo arguments from Buffy arguments.
+
+
+================================================================================
+4.  TESTING
+================================================================================
+
+All tests:
+  cargo test
+
+Specific module (unit tests only):
+  cargo test bsl::
+  cargo test config::
+  cargo test package::
+  cargo test repository::
+  cargo test diagnostic::
+  cargo test resolver::
+  cargo test cli::
+
+Specific test function:
+  cargo test test_parse_full_script
+
+Integration tests:
+  cargo test --test bsl_lexer_test
+  cargo test --test bsl_parser_test
+  cargo test --test bsl_pipeline_test
+  cargo test --test resolver_test
+  cargo test --test config_test
+
+Serial execution (for HOME-dependent tests):
+  cargo test -- --test-threads=1
+
+Test coverage:
+  Total: 77+ tests across all modules.
+  Every module has inline unit tests.
+  Integration tests cover end-to-end scenarios.
+  Test fixtures provide isolated, reproducible test data.
+
+
+================================================================================
+5.  CODING STANDARDS
+================================================================================
+
+Style:
+  - Run "cargo fmt" before every commit.
+  - Run "cargo clippy -- -D warnings" before every commit.
+  - No unsafe code (unless documented with // SAFETY:).
+  - No unwrap/expect in production code (use ?).
+
+Naming:
+  - Types: PascalCase (BslScript, InstallSource).
+  - Functions: snake_case (tokenize, resolve, verify_package).
+  - Modules: snake_case (buffy_home.rs, formatter.rs).
+  - Error variants: PascalCase (PackageVerificationFailed).
+
+Error handling:
+  - Use thiserror derives for all error types.
+  - Every error variant should include context.
+  - Use anyhow only at top-level CLI dispatch.
+
+Imports (order, separated by blank lines):
+  use std::...;
+  use crate::...;
+  use serde::...;
+
+Comments:
+  /// for public API docs.
+  // for internal notes.
+  // SAFETY: for unsafe blocks.
+  // TODO: for planned work.
+  // HACK: for workarounds.
+  // NOTE: for non-obvious decisions.
+
+
+================================================================================
+6.  GIT WORKFLOW
+================================================================================
+
+Branch naming:
+  feat/short-description     New features.
+  fix/short-description      Bug fixes.
+  docs/short-description     Documentation.
+  refactor/short-description Code restructuring.
+  test/short-description     Adding/fixing tests.
+
+Commit messages (Conventional Commits format):
+  feat(bsl): add support for OUTPUT toggle at runtime
+  fix(resolver): handle empty commands directory
+  docs: update README with examples
+  ci: add clippy check to workflow
+
+Before committing:
+  cargo build
+  cargo test
+  cargo clippy -- -D warnings
+  cargo fmt --check
+
+
+================================================================================
+7.  CI PIPELINE
+================================================================================
+
+The CI pipeline (defined in .github/workflows/ci.yml) runs on every push
+and pull request to the main branch:
+
+  Step 1: Checkout code
+  Step 2: Install Rust toolchain with clippy and rustfmt
+  Step 3: Build (cargo build --verbose)
+  Step 4: Test (cargo test --verbose)
+  Step 5: Lint (cargo clippy -- -D warnings)
+  Step 6: Format check (cargo fmt --check)
+
+Runs on: ubuntu-latest
+
+
+================================================================================
+8.  RELEASE PROCESS
+================================================================================
+
+1. Bump version in Cargo.toml.
+2. Run full test suite: cargo test && cargo clippy && cargo fmt --check.
+3. Update CHANGELOG.txt with changes.
+4. Build release binary: cargo build --release.
+5. Create git tag: git tag v0.X.0.
+6. Push tag: git push origin v0.X.0.
+7. Create GitHub Release with:
+   - Changelog summary.
+   - Release binary (target/release/buffy).
+   - SHA-256 checksum of the binary.
+
+--- End of DEVELOPMENT.txt ---

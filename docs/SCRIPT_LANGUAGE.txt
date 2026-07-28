@@ -1,0 +1,664 @@
+================================================================================
+                      BUFFY SCRIPT LANGUAGE (BSL) GUIDE
+================================================================================
+
+Table of Contents
+-----------------
+1.  What is BSL?
+2.  File Format and Extension
+3.  Execution Model
+4.  Comments
+5.  Metadata Section
+6.  Instructions (Statements)
+7.  Variables and Arguments
+8.  Complete Script Structure
+9.  Command Resolution
+10. Error Handling
+11. Best Practices
+12. Future Language Features
+13. Quick Reference Card
+
+
+================================================================================
+1.  WHAT IS BSL?
+================================================================================
+
+BSL (Buffy Script Language) is a simple, interpreted scripting language designed
+specifically for the Buffy CLI Automation Framework. It is NOT a general-purpose
+programming language like Python or Bash. It is a declarative, line-oriented
+language purpose-built for automating terminal commands.
+
+The core idea: each .bsl file represents one executable command. When you type
+"buffy pip-env", Buffy finds the matching .bsl file, interprets every
+instruction in order, and returns control to your terminal.
+
+Design Goals:
+  - Extremely easy to learn (open a file and understand it immediately)
+  - Human readable (declarative, not procedural)
+  - Safe to execute (validated before running)
+  - Consistent (one way to do things)
+  - Easy to parse (simple line-based syntax)
+  - Modular (one file = one command)
+  - Extendable without breaking existing scripts
+
+
+================================================================================
+2.  FILE FORMAT AND EXTENSION
+================================================================================
+
+All Buffy scripts use the extension:
+
+    .bsl
+
+Examples:
+    pip-env.bsl
+    docker-cleanup.bsl
+    system-info.bsl
+
+Internal encoding is plain UTF-8 text. Files are line-oriented -- each line
+contains at most one instruction. Lines are processed sequentially from top to
+bottom.
+
+A BOM (Byte Order Mark) at the start of the file is stripped automatically by
+the lexer.
+
+
+================================================================================
+3.  EXECUTION MODEL
+================================================================================
+
+When Buffy executes a .bsl file, it performs these steps in order:
+
+  Step 1:  LOAD the file from disk into a string.
+  Step 2:  TOKENIZE the string into tokens (lexer phase).
+  Step 3:  PARSE the tokens into an AST (Abstract Syntax Tree).
+  Step 4:  VALIDATE the AST (metadata placement, known instructions).
+  Step 5:  EXECUTE each instruction from top to bottom.
+  Step 6:  STOP immediately if any instruction fails.
+  Step 7:  RETURN control to the user's terminal.
+
+Key rules about execution:
+  - Execution is always sequential (one line at a time, top to bottom).
+  - If a RUN command exits with a non-zero status code, execution stops
+    immediately and an error is displayed.
+  - The EXIT instruction stops execution early (any remaining lines are
+    skipped).
+  - Future versions may support conditional execution and loops, but the
+    current version is strictly sequential.
+
+
+================================================================================
+4.  COMMENTS
+================================================================================
+
+Comments begin with two forward slashes "//". Everything after "//" on that
+line is ignored by the interpreter.
+
+Rules:
+  - Comments can appear at the start of a line or inline after an instruction.
+  - Comments inside a quoted string are treated as literal text (not parsed as
+    comments).
+  - There is no multi-line comment syntax. Use "//" on each line.
+
+Examples:
+  // This is a full-line comment.
+
+  WRITE "Hello"  // This is an inline comment.
+
+  WRITE "// This is NOT a comment -- it's literal text inside quotes."
+
+
+================================================================================
+5.  METADATA SECTION
+================================================================================
+
+Metadata lines must appear BEFORE any executable instructions. They configure
+the behavior of the script and provide information to the package manager.
+
+The metadata section ends when the first non-metadata instruction is
+encountered. Once a non-metadata instruction is seen, no further metadata
+lines are allowed. If a metadata keyword appears after an instruction, it is
+treated as an "unknown instruction" and causes a parse error.
+
+Syntax:  KEYWORD = "value"
+
+The equals sign is required. Values must be quoted strings unless otherwise
+noted.
+
+----------------------------------------------------------------------
+5.1  VERSION
+----------------------------------------------------------------------
+
+  VERSION = "YYYY.MM.DD"
+
+Required for distribution as a package. Used by the package manager to
+compare versions when checking for updates.
+
+The recommended format is date-based: YYYY.MM.DD (e.g., "2026.07.28").
+A build number can be appended for multiple releases on the same day:
+  VERSION = "2026.07.28.1"
+
+Examples:
+  VERSION = "2026.07.27"
+  VERSION = "1.0.0"
+
+----------------------------------------------------------------------
+5.2  AUTHOR
+----------------------------------------------------------------------
+
+  AUTHOR = "Name or Organization"
+
+Identifies the creator of the script. Displayed by "buffy --info <name>".
+Strongly recommended for all scripts, especially those distributed as
+packages.
+
+Examples:
+  AUTHOR = "Buffy Community"
+  AUTHOR = "John Smith"
+
+----------------------------------------------------------------------
+5.3  DESCRIPTION
+----------------------------------------------------------------------
+
+  DESCRIPTION = "Short description of what the script does"
+
+A brief summary shown by "buffy --info <name>" and in repository search
+results. Keep it concise -- one line is ideal.
+
+Examples:
+  DESCRIPTION = "Creates a Python virtual environment"
+  DESCRIPTION = "Displays system information"
+
+----------------------------------------------------------------------
+5.4  OUTPUT
+----------------------------------------------------------------------
+
+  OUTPUT = true
+  OUTPUT = false
+
+Controls whether the output of RUN commands is shown to the user.
+
+OUTPUT = true (default if not specified):
+  Every RUN command behaves like a normal terminal. Stdout is shown in
+  real-time as the command executes. This is the same as running the command
+  directly in your shell.
+
+OUTPUT = false:
+  Standard output is hidden. The command runs silently in the background.
+  Stderr is still captured and shown only if the command fails.
+  This is the recommended default for most automation scripts.
+
+OUTPUT can also be toggled at runtime anywhere in the script:
+  OUTPUT = true    // Turns output ON for subsequent RUN commands
+  OUTPUT = false   // Turns output OFF for subsequent RUN commands
+
+This allows scripts that are mostly silent but show specific commands:
+  OUTPUT = false
+  RUN "python3 -m venv .venv"          // Silent
+  OUTPUT = true
+  RUN "echo 'Virtual environment created'"   // Visible
+
+----------------------------------------------------------------------
+5.5  Complete Metadata Example
+----------------------------------------------------------------------
+
+  VERSION = "2026.07.28"
+  AUTHOR = "Buffy Community"
+  DESCRIPTION = "Creates a Python virtual environment in the current directory"
+  OUTPUT = false
+
+
+================================================================================
+6.  INSTRUCTIONS (STATEMENTS)
+================================================================================
+
+Each instruction occupies exactly one line. Instructions are executed in order
+from top to bottom.
+
+----------------------------------------------------------------------
+6.1  WRITE
+----------------------------------------------------------------------
+
+  WRITE "text to display"
+
+Prints text to the terminal. Variables in the text are expanded before
+display.
+
+Examples:
+  WRITE "Hello, World!"
+  WRITE "Current directory: ${PWD}"
+  WRITE ""
+
+An empty WRITE (WRITE "") prints a blank line. This is useful for spacing.
+
+----------------------------------------------------------------------
+6.2  RUN
+----------------------------------------------------------------------
+
+  RUN "shell command to execute"
+
+Executes a shell command using the user's shell (detected from the SHELL
+environment variable, falling back to /bin/sh). The command is passed to the
+shell with the -c flag.
+
+If OUTPUT is true, stdout is shown in real-time (inherited terminal).
+If OUTPUT is false, stdout is hidden completely.
+Stderr is always captured and shown only when the command fails.
+
+If the command exits with a non-zero status code, execution stops and an error
+is displayed showing:
+  - The command that failed
+  - The exit code
+  - The stderr output (first line preview plus hint to use OUTPUT = true)
+
+Examples:
+  RUN "python3 -m venv .venv"
+  RUN "git init"
+  RUN "docker compose up -d"
+  RUN "mkdir -p ${1}/src"
+
+Variables in the command string are expanded before execution:
+  RUN "mkdir ${1}"   // becomes "mkdir myproject" if arg[1] is "myproject"
+
+----------------------------------------------------------------------
+6.3  WAIT
+----------------------------------------------------------------------
+
+  WAIT <number>
+  WAIT "prompt message"
+
+Pauses execution.
+
+WAIT with a number:
+  Pauses for that many seconds. Accepts positive integers.
+  WAIT 5    // pauses for 5 seconds
+  WAIT 0    // pauses for 0 seconds (no effect, but valid)
+
+WAIT with a string:
+  Prints the message and waits for the user to press Enter.
+  WAIT "Press Enter to continue..."
+
+----------------------------------------------------------------------
+6.4  CLEAR
+----------------------------------------------------------------------
+
+  CLEAR
+
+Clears the terminal screen. Uses the ANSI escape code:
+  \x1B[2J\x1B[1;1H
+
+Equivalent to running the "clear" command, but does not need to spawn a
+subprocess.
+
+----------------------------------------------------------------------
+6.5  EXIT
+----------------------------------------------------------------------
+
+  EXIT
+
+Immediately stops script execution. Any remaining instructions after EXIT
+are skipped. Control returns to the user's terminal.
+
+Useful for:
+  - Stopping after an error condition
+  - Exiting early from a script that has optional commands
+  - Preventing execution of the rest of the script after a final message
+
+----------------------------------------------------------------------
+6.6  OUTPUT (runtime toggle)
+----------------------------------------------------------------------
+
+  OUTPUT = true
+  OUTPUT = false
+
+Toggles the output mode at runtime. This is the same syntax as the metadata
+OUTPUT line, but when it appears AFTER the metadata section (interleaved with
+other instructions), it changes the output mode for subsequent RUN commands.
+
+Example:
+  OUTPUT = false
+  RUN "python3 -m venv .venv"     // Silent
+  OUTPUT = true
+  RUN "echo 'Done!'"              // Visible
+  OUTPUT = false
+  RUN "cleanup_temp_files"        // Silent again
+
+
+================================================================================
+7.  VARIABLES AND ARGUMENTS
+================================================================================
+
+Variables use the syntax ${VARIABLE_NAME} and are expanded BEFORE execution.
+Expansion happens in the variable resolver, which processes each ${...}
+pattern using a regex.
+
+----------------------------------------------------------------------
+7.1  Built-in Variables
+----------------------------------------------------------------------
+
+  ${HOME}   - User's home directory (e.g., /home/reza)
+  ${USER}   - Current username (e.g., reza)
+  ${PWD}    - Current working directory (e.g., /home/reza/projects)
+  ${TEMP}   - System temp directory (e.g., /tmp)
+  ${DATE}   - Current date in YYYY-MM-DD format (e.g., 2026-07-28)
+  ${TIME}   - Current time in HH:MM:SS format (e.g., 14:30:00)
+
+These are resolved at execution time based on the current environment.
+
+----------------------------------------------------------------------
+7.2  Command Arguments (Positional)
+----------------------------------------------------------------------
+
+  ${1} through ${N}
+
+Arguments supplied after the Buffy command become numbered variables.
+
+Example:
+  buffy make-folder Test
+
+Inside the script:
+  ${1} contains "Test"
+  RUN "mkdir ${1}" becomes "mkdir Test"
+
+Example with multiple args:
+  buffy copy file1.txt file2.txt
+
+  ${1} = "file1.txt"
+  ${2} = "file2.txt"
+
+Arguments are resolved in order:
+  1. Built-in variables are checked first.
+  2. Numbered arguments are checked next (${1}, ${2}, etc.).
+  3. Unknown variables are LEFT AS-IS (not replaced). This allows passing
+     through to environment variables.
+
+----------------------------------------------------------------------
+7.3  Variable Resolution Detail
+----------------------------------------------------------------------
+
+The resolver uses regex pattern \$\{(\w+)\} to match variable references.
+This approach prevents false prefix matches. For example:
+  - ${HOME} matches only the exact string "${HOME}"
+  - ${HOME} does NOT match inside ${HOMEDIR} or ${HOME}_foo
+
+The resolution order for each ${...} reference is:
+  1. Check built-in variables (HOME, USER, PWD, TEMP, DATE, TIME)
+  2. Check numbered argument variables (1, 2, 3, ...)
+  3. If not found in either, leave the original ${...} text unchanged
+
+----------------------------------------------------------------------
+7.4  Variable Usage Examples
+----------------------------------------------------------------------
+
+  WRITE "Welcome, ${USER}!"
+  // Prints: Welcome, reza!
+
+  RUN "echo 'Date: ${DATE} Time: ${TIME}'"
+  // Runs: echo 'Date: 2026-07-28 Time: 14:30:00'
+
+  RUN "mkdir ${1}"
+  // If invoked as "buffy my-script myproject", runs: mkdir myproject
+
+  WRITE "${HOME}/${1}"
+  // Prints: /home/reza/myproject
+
+  WRITE "Path: ${HOMEDIR}"
+  // Prints: Path: ${HOMEDIR}  (left as-is, not a known variable)
+
+
+================================================================================
+8.  COMPLETE SCRIPT STRUCTURE
+================================================================================
+
+The structure of every .bsl file is:
+
+  1. OPTIONAL COMMENTS at the top
+  2. METADATA section (VERSION, AUTHOR, DESCRIPTION, OUTPUT must come first)
+  3. INSTRUCTIONS (WRITE, RUN, WAIT, CLEAR, EXIT, OUTPUT toggle)
+  4. OPTIONAL COMMENTS at the bottom
+
+----------------------------------------------------------------------
+8.1  Minimal Valid Script
+----------------------------------------------------------------------
+
+  WRITE "Hello, World!"
+  EXIT
+
+This script:
+  - Has no metadata (valid, but will cause linter warnings)
+  - Prints "Hello, World!" to the terminal
+  - Exits immediately
+
+----------------------------------------------------------------------
+8.2  Full Featured Script
+----------------------------------------------------------------------
+
+  // My Script
+  // Created by Me
+
+  VERSION = "2026.07.28"
+  AUTHOR = "Buffy Community"
+  DESCRIPTION = "A full-featured example script"
+  OUTPUT = false
+
+  WRITE "Starting process..."
+  RUN "python3 --version"
+  WRITE "Creating project structure..."
+  RUN "mkdir -p ${1}/src ${1}/tests"
+  RUN "cd ${1} && git init"
+  WRITE "Project created at ${PWD}/${1}"
+  OUTPUT = true
+  RUN "echo 'All done!'"
+  EXIT
+
+----------------------------------------------------------------------
+8.3  Script with Runtime Output Toggle
+----------------------------------------------------------------------
+
+  VERSION = "2026.07.28"
+  AUTHOR = "Buffy Community"
+  DESCRIPTION = "Silent setup with visible confirmation"
+  OUTPUT = false
+
+  WRITE "Setting up environment..."
+  RUN "python3 -m venv .venv"
+  RUN ".venv/bin/pip install --upgrade pip"
+
+  OUTPUT = true
+  RUN "echo 'Environment ready!'"
+
+  OUTPUT = false
+  RUN "rm -rf temp_files"
+
+  EXIT
+
+
+================================================================================
+9.  COMMAND RESOLUTION
+================================================================================
+
+When you type "buffy <command>", Buffy resolves the command by walking the
+~/.buffy/commands/ directory tree, matching each argument to a directory or
+file path.
+
+----------------------------------------------------------------------
+9.1  Resolution Algorithm
+----------------------------------------------------------------------
+
+For a command like "buffy pip-env create":
+  1. Split arguments: ["pip-env", "create"]
+  2. Walk ~/.buffy/commands/pip-env/
+  3. Look for create.bsl in that directory
+  4. If found, execute it. If not, try the other resolution priorities.
+
+----------------------------------------------------------------------
+9.2  Resolution Priorities (for the last argument)
+----------------------------------------------------------------------
+
+  Priority 1:  <arg>.bsl                    (exact file match)
+  Priority 2:  <arg>/index.bsl             (default subcommand)
+  Priority 3:  <arg>/<arg>.bsl             (directory name match)
+  Priority 4:  First .bsl alphabetically    (fallback)
+  Priority 5:  Flat lookup across packages  (buffy cd-down finds
+               file-system/cd-down.bsl)
+  Priority 6:  Error: Command not found
+
+----------------------------------------------------------------------
+9.3  Aliases
+----------------------------------------------------------------------
+
+Before directory resolution, the first argument is checked against user
+aliases defined in ~/.buffy/aliases.json. If "ve" is aliased to "pip-env",
+then "buffy ve" becomes "buffy pip-env".
+
+----------------------------------------------------------------------
+9.4  Directory Structure Examples
+----------------------------------------------------------------------
+
+  ~/.buffy/commands/
+      pip-env/
+          index.bsl         (buffy pip-env runs this by default)
+          create.bsl        (buffy pip-env create)
+          activate.bsl      (buffy pip-env activate)
+          destroy.bsl       (buffy pip-env destroy)
+      docker/
+          compose/
+              up.bsl        (buffy docker compose up)
+              down.bsl      (buffy docker compose down)
+
+
+================================================================================
+10.  ERROR HANDLING
+================================================================================
+
+If a RUN instruction fails (non-zero exit code):
+
+  1. Execution stops immediately.
+  2. An error message is displayed:
+
+       Error
+
+       Command:
+         python3 -m venv .venv
+
+       Exit Code:
+         1
+
+         stderr:
+         The virtual environment was not created successfully...
+
+  3. Control returns to the user's terminal.
+
+Error messages include:
+  - The command that failed.
+  - The exit code.
+  - Stderr output (if any).
+  - A hint: "Use OUTPUT = true to see the command's output."
+
+Parse-time errors (syntax, unknown instructions) are caught before any
+execution begins and report the file path and line number.
+
+
+================================================================================
+11.  BEST PRACTICES
+================================================================================
+
+1. ALWAYS include metadata (VERSION, AUTHOR, DESCRIPTION) for scripts you
+   plan to distribute. The linter will warn if they are missing.
+
+2. Set OUTPUT = false at the start of automation scripts. Only toggle it to
+   true for specific commands whose output the user should see.
+
+3. Use WRITE to give the user feedback about what the script is doing, even
+   when OUTPUT is false (WRITE is not affected by the OUTPUT setting).
+
+4. Use comments to explain WHY a command is being run, not WHAT it does (the
+   command itself should be self-explanatory).
+
+5. Keep scripts focused on one task. If a script does too many things,
+   consider splitting it into multiple .bsl files in the same package.
+
+6. Use numbered arguments (${1}, ${2}) to accept user input. Document what
+   each argument means in a comment or in the DESCRIPTION.
+
+7. Avoid hard-coding paths. Use ${HOME} and ${PWD} instead.
+
+8. Always use EXIT at the end of scripts that have conditional logic or
+   early-exit paths.
+
+9. Limit RUN statements to a reasonable number. The linter warns if a script
+   has more than 20 RUN statements -- consider splitting into multiple
+   packages for maintainability.
+
+10. Test your script with "buffy --check <file>" before running it, and
+    "buffy --validate <file>" to check metadata completeness.
+
+
+================================================================================
+12.  FUTURE LANGUAGE FEATURES
+================================================================================
+
+The following features are planned for future versions of BSL:
+
+  IF / ELSE / ENDIF         Conditional execution
+  SWITCH statements         Multi-branch conditions
+  FOR loops                 Iterate over a range
+  FOREACH loops             Iterate over files matching a pattern
+  Functions                 Reusable code blocks
+  User-defined variables    Set variables within the script
+  Imports                   Include other .bsl files
+  ASK "prompt"              Request user input (stores in ${INPUT})
+  CREATE / COPY / MOVE      Native file operations
+  DELETE "path"             Remove files/directories natively
+  DOWNLOAD "url"            Download files natively
+  EXTRACT "archive"         Extract archives natively
+  CHMOD "mode" "file"       Change file permissions natively
+  APPEND "file" "content"   Append to files natively
+  Background execution      Run commands in parallel
+  Progress bars             Show progress for long-running tasks
+
+
+================================================================================
+13.  QUICK REFERENCE CARD
+================================================================================
+
+METADATA (must come first):
+
+  VERSION = "YYYY.MM.DD"
+  AUTHOR = "Name"
+  DESCRIPTION = "What this script does"
+  OUTPUT = true    (or false)
+
+INSTRUCTIONS:
+
+  WRITE "text"              Print text to terminal
+  RUN "command"             Execute a shell command
+  WAIT 5                    Pause for N seconds
+  WAIT "Press enter"        Pause with prompt message
+  CLEAR                     Clear the terminal screen
+  EXIT                      Stop execution immediately
+  OUTPUT = true             Toggle output mode at runtime
+  OUTPUT = false            Toggle output mode at runtime
+
+BUILT-IN VARIABLES:
+
+  ${HOME}    Home directory
+  ${USER}    Current username
+  ${PWD}     Current working directory
+  ${TEMP}    System temp directory
+  ${DATE}    Current date (YYYY-MM-DD)
+  ${TIME}    Current time (HH:MM:SS)
+  ${1}-${N}  Script arguments
+
+COMMENTS:
+
+  // This is a comment
+  WRITE "hi"  // Inline comment
+
+FILE EXTENSION: .bsl
+
+ENCODING: UTF-8 (BOM is stripped automatically)
+
+
+
+--- End of BSL Guide ---

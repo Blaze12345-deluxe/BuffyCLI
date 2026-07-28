@@ -1,0 +1,140 @@
+================================================================================
+                           KNOWN_ISSUES
+================================================================================
+
+This file documents known bugs, limitations, and workarounds in the current
+version of Buffy.
+
+================================================================================
+1.  MULTIPLE FLAT LOOKUP MATCHES PICK FIRST RESULT SILENTLY
+================================================================================
+
+Severity: Low
+Status: Accepted limitation
+
+If two packages both have a .bsl file with the same name (e.g., both
+"file-system" and "my-utils" have "cd-down.bsl"), the flat lookup will
+return the first match found by the filesystem. The user is not informed
+that multiple matches exist.
+
+Workaround: Use the full package path: "buffy file-system cd-down".
+
+Fix planned: Add a confirmation prompt when multiple flat-lookup matches
+are found.
+
+
+================================================================================
+2.  ALL PACKAGES INSTALLED FROM MAIN BRANCH
+================================================================================
+
+Severity: Low
+Status: Accepted limitation
+
+Package downloads always fetch from the "main" branch of the target
+repository. There is no support for installing from a specific branch,
+tag, or commit.
+
+Workaround: Fork the repository and modify the branch name in the source
+code.
+
+Fix planned: Add branch/tag specification to install source syntax.
+
+
+================================================================================
+3.  GITHUB ONLY
+================================================================================
+
+Severity: Low
+Status: By design
+
+Only GitHub repositories are supported for package distribution. GitLab,
+Bitbucket, and self-hosted git servers are not supported.
+
+Workaround: None. Use GitHub for package distribution.
+
+Fix planned: Abstract the repository interface to support other git hosts.
+
+
+================================================================================
+4.  SELF-UPDATE DOES NOT AUTO-UPGRADE
+================================================================================
+
+Severity: Low
+Status: By design
+
+The "--update" command checks for a new version and displays download
+instructions, but does not automatically download and replace the binary.
+
+Reason: Auto-upgrading an executable is risky and requires elevated
+permissions on most systems. Manual installation is safer and more
+transparent.
+
+Workaround: Follow the download instructions displayed by "--update".
+
+
+================================================================================
+5.  NO OFFLINE PACKAGE VERIFICATION
+================================================================================
+
+Severity: Medium
+Status: Not implemented
+
+Package verification always requires a network fetch of the latest index
+to compare versions. There is no way to verify a package against a
+locally cached index alone.
+
+Workaround: None. Network access is required for verification.
+
+Fix planned: Add --offline flag for cache-only verification.
+
+
+================================================================================
+6.  NO PACKAGE VERSION PINNING
+================================================================================
+
+Severity: Medium
+Status: Not implemented
+
+There is no way to pin a package to a specific version. Updates always
+install the latest version from the repository.
+
+Workaround: Do not use "--update-packages" if you need a specific version.
+Manual reinstallation from a specific tag/commit is possible but not
+supported via the CLI.
+
+Fix planned: Add version pinning syntax (e.g., "pip-env@2026.06.15").
+
+
+================================================================================
+7.  LIMITED WINDOWS SUPPORT
+================================================================================
+
+Severity: Low
+Status: Accepted limitation
+
+Windows is a tertiary target. The shell executor defaults to cmd.exe on
+Windows. Many features (especially those relying on Unix commands) may
+not work correctly.
+
+Workaround: Use WSL (Windows Subsystem for Linux) for the best experience
+on Windows.
+
+Fix planned: Improved PowerShell support and path handling.
+
+
+================================================================================
+8.  TESTS REQUIRE NETWORK FOR SOME FEATURES
+================================================================================
+
+Severity: Low
+Status: Accepted limitation
+
+Some integration tests for the repository module attempt to fetch real
+GitHub indexes. If network is unavailable, these tests will fail.
+
+Workaround: Run tests with network access, or mark network-dependent tests
+as ignored when offline.
+
+Fix planned: Add mock HTTP server for network-independent testing.
+
+--- End of KNOWN_ISSUES.txt ---

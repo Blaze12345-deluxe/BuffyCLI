@@ -1,0 +1,228 @@
+================================================================================
+                          TROUBLESHOOTING
+================================================================================
+
+This file covers common problems and their solutions when using Buffy.
+
+================================================================================
+1.  COMMAND NOT FOUND
+================================================================================
+
+Problem:
+  buffy pip-env
+  -> Command not found: pip-env
+
+Possible causes:
+  1. The package is not installed. Run "buffy --list" to see installed
+     commands.
+  2. The command name is misspelled.
+  3. The command is installed but not in ~/.buffy/commands/.
+
+Solutions:
+  - Install the package: buffy --install pip-env
+  - Search for packages: buffy --repo search pip-env
+  - List installed commands: buffy --list
+
+
+================================================================================
+2.  PACKAGE NOT FOUND
+================================================================================
+
+Problem:
+  buffy --install pip-env
+  -> Package "pip-env" not found in any repository
+
+Possible causes:
+  1. The package name is wrong.
+  2. No repositories are configured.
+  3. The repository index is stale.
+  4. Network connectivity issues.
+
+Solutions:
+  - Check configured repos: buffy --repo list
+  - Search across all repos: buffy --repo search pip-env
+  - Refresh repository indexes: buffy --repo refresh
+  - Add a repository: buffy --repo add github.com/user/repo
+  - Check network: buffy --doctor
+
+
+================================================================================
+3.  VERIFICATION FAILED
+================================================================================
+
+Problem:
+  buffy --verify pip-env
+  -> Package verification failed: SHA mismatch
+
+Possible causes:
+  1. The package files were modified after installation.
+  2. The package was installed from a different source.
+  3. The SHA.txt or package.json is corrupt.
+
+Solutions:
+  - Reinstall the package: buffy --update-package pip-env
+  - Or: buffy --uninstall pip-env && buffy --install pip-env
+  - Run repair: buffy --repair
+
+
+================================================================================
+4.  CONFIGURATION CORRUPTION
+================================================================================
+
+Problem:
+  buffy --list
+  -> ConfigError: Invalid configuration
+
+Possible causes:
+  1. JSON file manually edited with invalid syntax.
+  2. File system corruption.
+  3. Concurrent write to config file.
+
+Solutions:
+  - Run repair: buffy --repair
+  - Run reset: buffy --reset
+  - Manually inspect ~/.buffy/config.json for syntax errors.
+
+
+================================================================================
+5.  NETWORK CONNECTIVITY
+================================================================================
+
+Problem:
+  buffy --install pip-env
+  -> RepositoryConnection: Failed to connect
+
+Possible causes:
+  1. No internet connection.
+  2. GitHub is blocked or unreachable.
+  3. Proxy configuration required.
+
+Solutions:
+  - Check internet connection.
+  - Run doctor: buffy --doctor
+  - If behind a proxy, ensure HTTP_PROXY and HTTPS_PROXY environment
+    variables are set for ureq.
+  - Verify GitHub is accessible: ping raw.githubusercontent.com
+
+
+================================================================================
+6.  NAME CONFLICT
+================================================================================
+
+Problem:
+  buffy pip-env
+  -> Multiple packages found for "pip-env"
+
+Solution:
+  - Select the preferred version when prompted.
+  - The choice is cached in ~/.buffy/aliases.json.
+  - Change the preference: buffy --alias resolve pip-env
+
+
+================================================================================
+7.  DEPENDENCY ISSUES
+================================================================================
+
+Problem:
+  A package reports missing system dependencies.
+
+Solutions:
+  - Install the missing tools via your system package manager:
+      sudo apt install python3 (Debian/Ubuntu)
+      brew install python3 (macOS)
+  - The dependency check is a warning, not an error. The package will still
+    be installed but may not function correctly.
+
+
+================================================================================
+8.  UPDATE FAILURES
+================================================================================
+
+Problem:
+  buffy --update-packages
+  -> Some packages failed to update
+
+Possible causes:
+  1. Network connectivity issue.
+  2. Package no longer exists in the repository.
+  3. SHA verification failure on the new version.
+
+Solutions:
+  - Check network connectivity.
+  - Try updating a single package: buffy --update-package pip-env
+  - If all else fails, uninstall and reinstall:
+      buffy --uninstall pip-env
+      buffy --install pip-env
+
+
+================================================================================
+9.  BSL SYNTAX ERRORS
+================================================================================
+
+Problem:
+  buffy --run script.bsl
+  -> BSL syntax error: line 3: unknown instruction
+
+Solutions:
+  - Check the script for typos in instruction names.
+  - Valid instructions: WRITE, RUN, WAIT, CLEAR, EXIT.
+  - Metadata (VERSION, AUTHOR, DESCRIPTION, OUTPUT) must come first.
+  - Run syntax check: buffy --check script.bsl
+  - Run metadata check: buffy --validate script.bsl
+
+
+================================================================================
+10.  DOCTOR FAILURES
+================================================================================
+
+Problem:
+  buffy --doctor
+  -> Some checks failed
+
+Check each failure:
+  - Home directory: Run "buffy" to create ~/.buffy/.
+  - Config file: Run "buffy --repair" to fix.
+  - Installed packages: Run "buffy --repair" to fix.
+  - Repository connectivity: Check network (see #5).
+  - SHA integrity: Reinstall packages with mismatched hashes.
+  - System dependencies: Install missing tools.
+  - BSL dependencies: Install missing dependent packages.
+
+
+================================================================================
+11.  SHELL COMPLETION NOT WORKING
+================================================================================
+
+Problem:
+  Tab completion for buffy flags doesn't work.
+
+Solutions:
+  - Ensure the eval line is in your shell's rc file.
+  - For bash: echo 'eval "$(buffy --completion bash)"' >> ~/.bashrc
+  - For zsh: echo 'eval "$(buffy --completion zsh)"' >> ~/.zshrc
+  - Restart your shell or source the file.
+  - Note: completion only covers CLI flags, not BSL commands or packages.
+
+
+================================================================================
+12.  LOGS AND DIAGNOSTICS
+================================================================================
+
+View logs:
+  buffy --logs           (show latest log)
+  buffy --logs clear     (clear all logs)
+
+Full diagnostics:
+  buffy --doctor
+
+Repair:
+  buffy --repair
+
+Reset (preserves packages):
+  buffy --reset
+
+Cache cleanup:
+  buffy --clean
+
+
+--- End of TROUBLESHOOTING.txt ---

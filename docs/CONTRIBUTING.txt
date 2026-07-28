@@ -1,0 +1,153 @@
+================================================================================
+                            CONTRIBUTING
+================================================================================
+
+This file covers how to contribute to the Buffy project -- whether code,
+documentation, tests, or packages.
+
+================================================================================
+1.  CODE OF CONDUCT
+================================================================================
+
+This project is governed by the Contributor Covenant v2.1. By participating,
+you agree to maintain a harassment-free experience for all contributors.
+
+================================================================================
+2.  WAYS TO CONTRIBUTE
+================================================================================
+
+Code:
+  - Bug fixes.
+  - New features (see ROADMAP.txt for planned work).
+  - Performance improvements.
+  - Refactoring.
+
+Documentation:
+  - Improving existing documentation.
+  - Adding examples.
+  - Translating docs to other languages.
+
+Testing:
+  - Adding test cases.
+  - Edge case discovery.
+  - Platform-specific testing.
+
+Packages:
+  - Creating new BSL packages for the plugin repository.
+  - Improving existing packages.
+  - Adding package documentation.
+
+Bug Reports:
+  - Filing detailed bug reports with reproduction steps.
+  - Confirming and triaging existing bugs.
+
+================================================================================
+3.  DEVELOPMENT SETUP
+================================================================================
+
+See DEVELOPMENT.txt for complete development setup instructions.
+
+Quick start:
+  git clone https://github.com/Blaze12345-deluxe/BuffyCLI.git
+  cd BuffyCLI
+  cargo build
+  cargo test
+
+================================================================================
+4.  CODING STANDARDS
+================================================================================
+
+Formatting:
+  - Run "cargo fmt" before every commit.
+  - CI enforces "cargo fmt --check".
+
+Linting:
+  - Run "cargo clippy -- -D warnings" before every commit.
+  - CI treats all warnings as errors.
+
+Safety:
+  - No unsafe code unless documented with // SAFETY:.
+  - No unwrap/expect in production code paths.
+
+Error handling:
+  - Use thiserror derives for error types.
+  - Include helpful context in error messages.
+  - Use anyhow::Result only at top level.
+
+Naming:
+  - Types: PascalCase (BslScript, InstallSource).
+  - Functions: snake_case (tokenize, resolve).
+  - Modules: snake_case (buffy_home.rs).
+  - Error variants: PascalCase (PackageVerificationFailed).
+
+================================================================================
+5.  TESTING REQUIREMENTS
+================================================================================
+
+Before submitting changes:
+  - All tests must pass: cargo test
+  - New features must have tests.
+  - Bug fixes must include a regression test.
+  - Test both success and error paths.
+
+Test locations:
+  - Inline unit tests: #[cfg(test)] mod tests in each source file.
+  - Integration tests: tests/integration/*.rs.
+  - Test fixtures: tests/fixtures/.
+
+Serialized tests:
+  Tests that modify the HOME environment variable must acquire
+  TEST_HOME_LOCK (from config::buffy_home) to prevent parallel-test races.
+
+================================================================================
+6.  PULL REQUEST WORKFLOW
+================================================================================
+
+1. Open an issue to discuss your proposed change before starting work.
+2. Create a branch:
+     feat/description, fix/description, docs/description, etc.
+3. Make your changes:
+     cargo build && cargo test && cargo clippy && cargo fmt --check
+4. Write commit messages using Conventional Commits:
+     feat(bsl): add support for IF/ELSE
+     fix(resolver): handle empty commands directory
+     docs: update README with new flags
+5. Push your branch and open a pull request.
+6. Address review feedback with additional commits.
+7. A maintainer will merge once approved.
+
+PR checklist:
+  [ ] Code follows coding standards.
+  [ ] All existing tests pass.
+  [ ] New tests added for new functionality.
+  [ ] Documentation updated.
+  [ ] Changes are scoped to a single concern.
+  [ ] Commit messages follow Conventional Commits.
+  [ ] Branch is rebased on latest main.
+
+================================================================================
+7.  WRITING BSL PACKAGES
+================================================================================
+
+See SCRIPT_LANGUAGE.txt for the BSL language guide and CONFIGURATION.txt for
+package format details.
+
+Quick overview:
+  1. Create a directory for your package.
+  2. Write one or more .bsl files.
+  3. Create package.json with required fields.
+  4. Generate SHA-256 checksums in {name}-SHA.txt.
+  5. Test locally: buffy --install ./your-package
+  6. Submit to the plugin repository:
+     https://github.com/Blaze12345-deluxe/Buffy-Plugins
+
+================================================================================
+8.  QUESTIONS AND HELP
+================================================================================
+
+- Open an issue on GitHub.
+- Check existing documentation in docs/.
+- Review the BSL spec in SCRIPT_LANGUAGE.txt.
+- Check the source code comments.
+
+--- End of CONTRIBUTING.txt ---

@@ -1,0 +1,56 @@
+================================================================================
+                                TODO
+================================================================================
+
+This file tracks current and planned work items for the Buffy project.
+
+================================================================================
+CURRENT TASKS
+================================================================================
+
+Priority: HIGH
+
+  1. None currently. All core features are implemented.
+     See ROADMAP.txt for planned features.
+
+Priority: MEDIUM
+
+  2. Add test coverage for edge cases:
+     - Empty repository list handling.
+     - Network timeout during index fetch.
+     - Corrupt config file recovery.
+     - Package with circular dependencies.
+     - Install of package that already exists (update vs skip).
+
+  3. Improve error messages:
+     - More specific IO error contexts.
+     - Better HTTP error messages (status code details).
+     - Suggestion to use "buffy --repo add" when package not found.
+
+Priority: LOW
+
+  4. Add --no-color flag for non-terminal output.
+  5. Add progress bar during long package installations.
+  6. Add command completion for installed BSL packages (not just flags).
+  7. Add offline verification mode (no network fetch).
+
+================================================================================
+COMPLETED TASKS
+================================================================================
+
+  [X] Initialize Rust project (Phase 0).
+  [X] Build configuration manager (Phase 1).
+  [X] Build logger (Phase 2).
+  [X] Build BSL interpreter core (Phase 3).
+  [X] Build CLI and resolver (Phase 4).
+  [X] Build repository manager (Phase 5).
+  [X] Build package manager (Phase 6).
+  [X] Build diagnostics (Phase 7).
+  [X] Build name conflict and alias management (Phase 8).
+  [X] Polish and documentation (Phase 9).
+  [X] CI pipeline (GitHub Actions).
+  [X] Test fixtures.
+  [X] Example scripts.
+  [X] Comprehensive documentation.
+
+--- End of TODO.txt ---

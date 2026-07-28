@@ -1,0 +1,200 @@
+================================================================================
+                              ROADMAP
+================================================================================
+
+This file documents the development roadmap for Buffy, including completed
+phases, current status, and planned future work.
+
+================================================================================
+1.  COMPLETED PHASES
+================================================================================
+
+Phase 0 - Project Initialization (COMPLETE):
+  - Rust project scaffolding with cargo init.
+  - Module directory structure for all subsystems.
+  - All crate dependencies configured.
+  - Release profile with LTO and strip optimization.
+  - Test fixture directories.
+
+Phase 1 - Configuration Manager (COMPLETE):
+  - Unified BuffyError enum with user-facing tips.
+  - Platform path resolution.
+  - ~/.buffy/ directory layout and creation.
+  - JSON config file I/O.
+
+Phase 2 - Logger (COMPLETE):
+  - Colored terminal output functions.
+  - tracing subscriber initialization.
+
+Phase 3 - BSL Interpreter Core (COMPLETE):
+  - AST definitions for all BSL constructs.
+  - Line-based lexer with comment stripping.
+  - Parser with metadata validation.
+  - Variable resolver with regex-based expansion.
+  - Shell executor with output mode support.
+  - Interpreter with sequential execution.
+
+Phase 4 - CLI and Resolver (COMPLETE):
+  - Clap-based CLI with 25 flags.
+  - Directory-walking command resolver.
+  - Alias resolution.
+  - Flat lookup fallback.
+  - Flag dispatch to subsystem handlers.
+
+Phase 5 - Repository Manager (COMPLETE):
+  - Install source type parsing.
+  - Repository index parsing with version comparison.
+  - GitHub HTTP integration with caching.
+  - Cross-repository search.
+
+Phase 6 - Package Manager (COMPLETE):
+  - Install from 4 sources.
+  - Per-file SHA-256 verification.
+  - Name conflict detection and resolution.
+  - System and BSL dependency resolution.
+  - Package update mechanism.
+  - Package uninstall with dependency warnings.
+  - System tool discovery.
+
+Phase 7 - Diagnostics (COMPLETE):
+  - System doctor (11 checks).
+  - BSL linter (9 check types).
+  - Metadata validator.
+  - Benchmark runner.
+  - Self-update check.
+  - Repair utility.
+  - Configuration reset.
+
+Phase 8 - Name Conflicts and Aliases (COMPLETE):
+  - Conflict detection by SHA comparison.
+  - User-prompt resolution with caching.
+  - Alias management (CRUD).
+  - Conflict preference storage.
+
+Phase 9 - Polish and Documentation (COMPLETE):
+  - Shell completion generation.
+  - Welcome screen.
+  - Error message polish.
+  - CI pipeline.
+  - Example scripts.
+  - Documentation (all docs/ files).
+  - README, CONTRIBUTING, SECURITY, CHANGELOG.
+
+
+================================================================================
+2.  CURRENT STATUS
+================================================================================
+
+Version: 0.1.0
+Status: Pre-release / Active Development
+Tests: 77+ passing
+Documentation: Complete
+
+The core functionality is implemented and tested. The project is ready for
+beta testing and community feedback.
+
+
+================================================================================
+3.  PLANNED SHORT-TERM FEATURES
+================================================================================
+
+These are the next features planned for implementation:
+
+BSL Language Enhancements:
+  - IF / ELSE / ENDIF conditional execution.
+  - FOREACH loops for iterating over file patterns.
+  - ASK instruction for user input (stores in ${INPUT}).
+
+Package System:
+  - Package pinning to specific versions.
+  - Offline package verification (without network fetch).
+  - Git tag/branch support for package sources.
+
+CLI Improvements:
+  - Interactive mode (buffy shell).
+  - Tab completion for installed BSL commands.
+  - --no-color flag for non-terminal output.
+
+Diagnostics:
+  - More detailed benchmark reports (per-line timing).
+  - Network connectivity test in doctor.
+
+
+================================================================================
+4.  PLANNED LONG-TERM FEATURES
+================================================================================
+
+These features are planned but not yet scheduled:
+
+BSL Language:
+  - User-defined variables (SET).
+  - Functions and reusable code blocks.
+  - Imports (include other .bsl files).
+  - Native file operations (CREATE, COPY, MOVE, DELETE).
+  - Native networking (DOWNLOAD).
+  - Archive extraction (EXTRACT, COMPRESS).
+  - Background and parallel execution.
+  - Progress bar support in scripts.
+
+Package System:
+  - Digital package signatures (beyond SHA).
+  - Package ratings and download statistics.
+  - Local package repositories.
+  - Module version pinning.
+  - Dependency deduplication and conflict resolution.
+
+CLI:
+  - Interactive configuration wizard.
+  - Color schemes and themes.
+  - JSON output mode for scripting.
+  - Web dashboard for package management.
+
+Infrastructure:
+  - Windows support improvements.
+  - macOS support improvements.
+  - Official package repository website.
+  - Package publishing CLI (buffy --publish).
+
+
+================================================================================
+5.  KNOWN FUTURE WORK ITEMS
+================================================================================
+
+From the BSL specification:
+  - ${HOSTNAME}, ${OS}, ${CPU}, ${ARCH}, ${SHELL}, ${BUFFY_VERSION} variables.
+  - IF_EXISTS / IF_NOT_EXISTS conditionals.
+  - APPEND instruction for writing to files.
+  - CHMOD instruction for permission changes.
+
+From the package format spec:
+  - Asset file support (non-BSL files in packages).
+  - Repository aliases.
+  - Package homepage URL display.
+
+From user feedback (anticipated):
+  - Windows-specific shell handling.
+  - Progress bar during long-running installs.
+  - Confirmation prompts before destructive operations.
+
+
+================================================================================
+6.  MILESTONES
+================================================================================
+
+v0.1.0 (Current):
+  Core functionality: CLI, resolver, BSL interpreter, package manager,
+  repository integration, diagnostics, aliases, documentation.
+
+v0.2.0 (Next):
+  Conditional execution (IF/ELSE), loops (FOREACH), user input (ASK),
+  improved error messages, command completion.
+
+v0.3.0:
+  Native file operations, package pinning, interactive mode.
+
+v1.0.0:
+  Stable BSL specification, formal release process, platform support
+  guarantees, LTS release cadence.
+
+
+--- End of ROADMAP.txt ---
