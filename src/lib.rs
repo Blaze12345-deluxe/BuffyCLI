@@ -17,6 +17,9 @@ pub fn run() -> anyhow::Result<()> {
     // Initialize the ~/.buffy/ directory structure
     config::buffy_home::ensure_directories()?;
 
+    // Install bundled packages (e.g., pip-env) on first run
+    config::buffy_home::ensure_bundled_packages()?;
+
     // Initialize logging to file
     init_logging()?;
 
