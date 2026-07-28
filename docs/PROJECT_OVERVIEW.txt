@@ -24,8 +24,10 @@ The framework consists of:
   - A package manager for installing .bsl scripts from GitHub repositories.
   - A simple, declarative scripting language (BSL) purpose-built for
     automation tasks.
-  - A community plugin repository at:
+  -  A community plugin repository at:
     https://github.com/Blaze12345-deluxe/Buffy-Plugins
+  - Official release binaries at:
+    https://github.com/Blaze12345-deluxe/BuffyCLI/releases
 
 
 ================================================================================

@@ -5,8 +5,11 @@
 This file tracks all notable changes to the Buffy CLI project.
 
 ================================================================================
-v0.1.0 -- 2026-07-27
+v0.1.0 -- 2026-07-28
 ================================================================================
+
+First official GitHub release with pre-built binary asset.
+Release: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.0
 
 Initial release. Complete implementation of all core features.
 

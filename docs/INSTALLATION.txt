@@ -74,11 +74,12 @@ Download a pre-built binary from the releases page:
   https://github.com/Blaze12345-deluxe/BuffyCLI/releases
 
 Example for Linux AMD64:
-  wget https://github.com/Blaze12345-deluxe/BuffyCLI/releases/download/v0.1.0/buffy-linux-amd64
-  chmod +x buffy-linux-amd64
-  sudo mv buffy-linux-amd64 /usr/local/bin/buffy
+  wget https://github.com/Blaze12345-deluxe/BuffyCLI/releases/download/v0.1.0/buffy-v0.1.0-linux-amd64.gz
+  gunzip buffy-v0.1.0-linux-amd64.gz
+  chmod +x buffy-v0.1.0-linux-amd64
+  sudo mv buffy-v0.1.0-linux-amd64 /usr/local/bin/buffy
 
-Verify the checksum (if provided) before running the binary.
+Verify the SHA-256 checksum (displayed on the GitHub release page) before running the binary.
 
 
 ================================================================================

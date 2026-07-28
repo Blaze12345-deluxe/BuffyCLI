@@ -86,12 +86,14 @@ Phase 9 - Polish and Documentation (COMPLETE):
 ================================================================================
 
 Version: 0.1.0
-Status: Pre-release / Active Development
+Status: Released (2026-07-28)
+Release URL: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.0
 Tests: 77+ passing
 Documentation: Complete
 
-The core functionality is implemented and tested. The project is ready for
-beta testing and community feedback.
+The core functionality is implemented, tested, and published as a GitHub
+release. The project is now available for beta testing and community
+feedback.
 
 
 ================================================================================
