@@ -5,6 +5,27 @@
 This file tracks all notable changes to the Buffy CLI project.
 
 ================================================================================
+v0.1.2 -- 2026-07-28
+================================================================================
+
+Feature release adding bundled packages and command ambiguity resolution.
+
+Release: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.2
+
+Added:
+  - pip-env now ships pre-installed with Buffy. On first run, the script is
+    automatically installed from an embedded resource (include_str!). No need
+    to run "buffy --install pip-env" — it's available immediately. Idempotent
+    and non-destructive (skips if already installed from another source).
+  - Flat-lookup ambiguity resolution: when "buffy <command>" matches a .bsl
+    file in multiple packages, the user is shown a numbered selection prompt
+    instead of silently picking the first result alphabetically.
+
+Changed:
+  - AI/ module removed from this repo and moved to its own repository:
+    https://github.com/Blaze12345-deluxe/Buffy-AI-Script-Maker
+
+================================================================================
 v0.1.1 -- 2026-07-28
 ================================================================================
 
