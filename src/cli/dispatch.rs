@@ -51,7 +51,7 @@ fn print_about() -> Result<()> {
     println!("  . SHA-256 package verification");
     println!("  . System discovery: suggests packages for detected tools");
     println!();
-    println!("Repository: https://github.com/BuffyCLI");
+    println!("Repository: https://github.com/Blaze12345-deluxe/BuffyCLI");
     Ok(())
 }
 
@@ -136,7 +136,7 @@ fn self_update() -> Result<()> {
         }
         Err(_) => {
             eprintln!("Could not check for updates. Check manually at:");
-            eprintln!("  https://github.com/BuffyCLI/buffy/releases");
+            eprintln!("  https://github.com/Blaze12345-deluxe/BuffyCLI/releases");
         }
     }
     Ok(())
@@ -159,7 +159,7 @@ fn check_update() -> Result<()> {
         }
         Err(_) => {
             eprintln!("  Could not check for updates.");
-            eprintln!("  Check manually: https://github.com/BuffyCLI/buffy/releases");
+            eprintln!("  Check manually: https://github.com/Blaze12345-deluxe/BuffyCLI/releases");
         }
     }
     Ok(())
@@ -168,7 +168,7 @@ fn check_update() -> Result<()> {
 /// Checks the GitHub API for the latest release.
 /// Returns (tag_name, html_url) if a newer version exists, or None if up to date.
 fn check_for_update() -> std::result::Result<Option<(String, String)>, String> {
-    let url = "https://api.github.com/repos/BuffyCLI/buffy/releases/latest";
+    let url = "https://api.github.com/repos/Blaze12345-deluxe/BuffyCLI/releases/latest";
     match ureq::get(url)
         .set("User-Agent", "buffy-cli")
         .set("Accept", "application/json")
@@ -243,8 +243,25 @@ fn repair() -> Result<()> {
     }
 
     // 3. Check and repair repositories file
+    let known_stale_urls = ["https://github.com/BuffyCLI/packages"];
     match crate::config::settings::read_repositories() {
-        Ok(_) => println!("  Repositories file OK."),
+        Ok(repos) => {
+            let has_stale = repos.iter().any(|r| known_stale_urls.contains(&r.as_str()));
+            if has_stale {
+                let updated: Vec<String> = repos.iter().map(|r| {
+                    if known_stale_urls.contains(&r.as_str()) {
+                        "https://github.com/Blaze12345-deluxe/Buffy-Plugins".to_string()
+                    } else {
+                        r.clone()
+                    }
+                }).collect();
+                crate::config::settings::write_repositories(&updated)?;
+                println!("  Updated stale repository URLs to current defaults.");
+                fixed += 1;
+            } else {
+                println!("  Repositories file OK.");
+            }
+        }
         Err(_) => {
             let default_repos = vec!["https://github.com/Blaze12345-deluxe/Buffy-Plugins".to_string()];
             crate::config::settings::write_repositories(&default_repos)?;

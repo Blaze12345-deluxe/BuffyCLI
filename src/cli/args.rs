@@ -22,7 +22,6 @@ pub struct CliArgs {
     ///
     /// If no flags are given, the first argument is resolved as an installed BSL
     /// command. Any remaining arguments are passed to the script as ${1}, ${2}, etc.
-    #[arg(trailing_var_arg = true)]
     pub command: Vec<String>,
 
     // ── Built-in Flags ──
