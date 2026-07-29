@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Buffy CLI Automation Framework — a lightweight, cross-platform CLI tool for creating and sharing terminal commands with simple .bsl scripts. Ecosystem includes plugin repository and AI script generator.">
+<title>Buffy CLI Automation Framework</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg:         #0d1117;
+    --bg-card:    #161b22;
+    --bg-hover:   #1c2333;
+    --border:     #30363d;
+    --text:       #c9d1d9;
+    --text-dim:   #8b949e;
+    --accent:     #58a6ff;
+    --green:      #3fb950;
+    --amber:      #d29922;
+    --red:        #f85149;
+    --purple:     #bc8cff;
+    --cyan:       #39d2c0;
+    --radius:     12px;
+    --mono:       'SFMono-Regular', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  a { color: var(--accent); text-decoration: none; transition: color .2s; }
+  a:hover { color: #79c0ff; text-decoration: underline; }
+
+  /* ── Scanline overlay ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px, rgba(255,255,255,.015) 2px, rgba(255,255,255,.015) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Container ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+  /* ── Terminal Bar ── */
+  .terminal-bar {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  .terminal-dots { display: flex; gap: 8px; }
+  .terminal-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    transition: transform .2s;
+  }
+  .terminal-dot:hover { transform: scale(1.3); }
+  .dot-red    { background: var(--red); }
+  .dot-amber  { background: var(--amber); }
+  .dot-green  { background: var(--green); }
+  .terminal-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-left: 12px;
+  }
+  .terminal-title span { color: var(--green); }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 80px 0 60px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(ellipse at center, rgba(88,166,255,.06) 0%, transparent 60%);
+    animation: heroGlow 8s ease-in-out infinite alternate;
+  }
+  @keyframes heroGlow {
+    0%   { transform: translate(0, 0); }
+    100% { transform: translate(-5%, 5%); }
+  }
+
+  .hero-content { position: relative; z-index: 1; }
+
+  .hero-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 4px 12px;
+    border: 1px solid var(--green);
+    border-radius: 20px;
+    color: var(--green);
+    margin-bottom: 20px;
+    letter-spacing: .5px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-version {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+  .hero-version span { color: var(--green); }
+
+  .hero p {
+    font-size: 18px;
+    color: var(--text-dim);
+    max-width: 640px;
+    margin: 0 auto 32px;
+  }
+
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono);
+    font-size: 14px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none !important;
+  }
+  .btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(88,166,255,.15);
+  }
+  .btn-primary {
+    background: #1f6feb;
+    border-color: #1f6feb;
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: #388bfd;
+    border-color: #388bfd;
+    box-shadow: 0 4px 20px rgba(88,166,255,.25);
+  }
+
+  /* ── Section Headers ── */
+  .section {
+    padding: 60px 0;
+    border-top: 1px solid var(--border);
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .arrow {
+    font-family: var(--mono);
+    color: var(--green);
+    font-size: 18px;
+  }
+  .section-sub {
+    color: var(--text-dim);
+    margin-bottom: 32px;
+    font-size: 15px;
+  }
+
+  /* ── Repo Cards ── */
+  .repo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .repo-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    transition: all .25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .repo-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .repo-card:hover {
+    border-color: rgba(88,166,255,.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(0,0,0,.3);
+  }
+
+  .repo-card.core::before  { background: linear-gradient(90deg, var(--accent), var(--cyan)); }
+  .repo-card.plugins::before  { background: linear-gradient(90deg, var(--green), var(--amber)); }
+  .repo-card.ai::before    { background: linear-gradient(90deg, var(--purple), var(--cyan)); }
+
+  .repo-card .icon {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+  }
+  .repo-card h3 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .repo-card .repo-path {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    word-break: break-all;
+  }
+  .repo-card p {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .repo-card .lang-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(88,166,255,.1);
+    color: var(--accent);
+    margin-right: 6px;
+    margin-bottom: 6px;
+  }
+  .repo-card .lang-tag.green  { background: rgba(63,185,80,.1);  color: var(--green); }
+  .repo-card .lang-tag.purple { background: rgba(188,140,255,.1); color: var(--purple); }
+  .repo-card .lang-tag.amber  { background: rgba(210,153,34,.1);  color: var(--amber); }
+
+  .repo-card .card-links {
+    display: flex; gap: 12px; flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .repo-card .card-links a {
+    font-family: var(--mono);
+    font-size: 12px;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  /* ── Quick Start ── */
+  .quick-start-code {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    overflow-x: auto;
+    margin-bottom: 20px;
+  }
+  .quick-start-code .comment { color: var(--text-dim); }
+  .quick-start-code .cmd     { color: var(--green); }
+  .quick-start-code .output  { color: var(--amber); }
+  .quick-start-code .prompt  { color: var(--accent); }
+
+  /* ── Docs Grid ── */
+  .docs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  .docs-grid a {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    transition: all .2s;
+    text-decoration: none !important;
+  }
+  .docs-grid a:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+  }
+  .docs-grid a .doc-icon { color: var(--text-dim); font-family: sans-serif; }
+
+  /* ── Footer ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 0;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  footer a { color: var(--text-dim); }
+  footer a:hover { color: var(--accent); }
+
+  /* ── Animations ── */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-content { animation: fadeUp .8s ease-out; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .repo-card:nth-child(1) { animation: fadeUp .6s ease-out .1s both; }
+    .repo-card:nth-child(2) { animation: fadeUp .6s ease-out .2s both; }
+    .repo-card:nth-child(3) { animation: fadeUp .6s ease-out .3s both; }
+  }
+
+  /* ── Blinking cursor ── */
+  .cursor {
+    display: inline-block;
+    width: 2px; height: 1em;
+    background: var(--green);
+    margin-left: 2px;
+    animation: blink 1s step-end infinite;
+    vertical-align: text-bottom;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .hero { padding: 48px 0 40px; }
+    .hero h1 { font-size: 2rem; }
+    .hero p { font-size: 16px; }
+    .terminal-title { font-size: 11px; }
+    .docs-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── Terminal Bar ─── -->
+<div class="terminal-bar">
+  <div class="terminal-dots">
+    <div class="terminal-dot dot-red"></div>
+    <div class="terminal-dot dot-amber"></div>
+    <div class="terminal-dot dot-green"></div>
+  </div>
+  <div class="terminal-title"><span>$</span> buffy --about <span class="cursor"></span></div>
+</div>
+
+<!-- ─── Hero ─── -->
+<section class="hero">
+  <div class="hero-content container">
+    <div class="hero-badge">v0.1.3 &mdash; MIT License</div>
+    <h1>Buffy CLI</h1>
+    <div class="hero-version">Automation Framework &nbsp;&middot;&nbsp; <span>Linux-first</span> &nbsp;&middot;&nbsp; <span>CLI-native</span></div>
+    <p>A lightweight, cross-platform CLI automation framework. Create and share terminal commands by writing simple <strong>.bsl</strong> files &mdash; no programming experience required.</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://github.com/Blaze12345-deluxe/BuffyCLI" target="_blank" rel="noopener">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+      <a class="btn" href="#quick-start">Quick Start</a>
+      <a class="btn" href="#docs">Documentation</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Ecosystem Section ─── -->
+<section class="section" id="ecosystem">
+  <div class="container">
+    <div class="section-title">
+      <span class="arrow">&gt;&gt;</span>
+      Ecosystem
+    </div>
+    <p class="section-sub">Three repositories that make up the complete Buffy platform.</p>
+
+    <div class="repo-grid">
+      <!-- Core -->
+      <div class="repo-card core">
+        <span class="icon">&#9881;</span>
+        <h3>Buffy CLI</h3>
+        <div class="repo-path">Blaze12345-deluxe / BuffyCLI</div>
+        <p>The core Rust executable. Parses CLI arguments, resolves commands, interprets BSL scripts, manages packages, runs diagnostics, and handles all configuration.</p>
+        <div>
+          <span class="lang-tag">Rust</span>
+          <span class="lang-tag green">CLI</span>
+          <span class="lang-tag amber">BSL</span>
+        </div>
+        <div class="card-links">
+          <a href="https://github.com/Blaze12345-deluxe/BuffyCLI" target="_blank" rel="noopener">Repository &rarr;</a>
+          <a href="#docs">Documentation &rarr;</a>
+        </div>
+      </div>
+
+      <!-- Plugins -->
+      <div class="repo-card plugins">
+        <span class="icon">&#128230;</span>
+        <h3>Buffy Plugins</h3>
+        <div class="repo-path">Blaze12345-deluxe / Buffy-Plugins</div>
+        <p>Community-driven repository of installable plugins. Contains 11 packages covering Python tools, Docker, git, networking, system info, file management, and more.</p>
+        <div>
+          <span class="lang-tag green">BSL</span>
+          <span class="lang-tag amber">11 packages</span>
+        </div>
+        <div class="card-links">
+          <a href="https://github.com/Blaze12345-deluxe/Buffy-Plugins" target="_blank" rel="noopener">Repository &rarr;</a>
+          <a href="https://github.com/Blaze12345-deluxe/Buffy-Plugins/blob/master/README.md" target="_blank" rel="noopener">README &rarr;</a>
+        </div>
+      </div>
+
+      <!-- AI -->
+      <div class="repo-card ai">
+        <span class="icon">&#129302;</span>
+        <h3>Buffy AI Script Maker</h3>
+        <div class="repo-path">Blaze12345-deluxe / Buffy-AI-Script-Maker</div>
+        <p>Python-based AI tool that generates valid BSL scripts from natural language prompts. Includes syntax validation, training corpus, save/resume state, template scaffolder, and GGUF export.</p>
+        <div>
+          <span class="lang-tag purple">Python</span>
+          <span class="lang-tag green">AI</span>
+          <span class="lang-tag amber">GGUF</span>
+        </div>
+        <div class="card-links">
+          <a href="https://github.com/Blaze12345-deluxe/Buffy-AI-Script-Maker" target="_blank" rel="noopener">Repository &rarr;</a>
+          <a href="https://github.com/Blaze12345-deluxe/Buffy-AI-Script-Maker/blob/master/template/CREATING_PLUGINS.txt" target="_blank" rel="noopener">Plugin Template &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Quick Start ─── -->
+<section class="section" id="quick-start">
+  <div class="container">
+    <div class="section-title">
+      <span class="arrow">&gt;&gt;</span>
+      Quick Start
+    </div>
+    <p class="section-sub">Get Buffy installed and running your first command in under 2 minutes.</p>
+
+    <div class="quick-start-code">
+<span class="comment"># 1. Install Buffy from source</span>
+<span class="prompt">$</span> git clone https://github.com/Blaze12345-deluxe/BuffyCLI.git
+<span class="prompt">$</span> <span class="cmd">cd</span> BuffyCLI && cargo build --release
+<span class="prompt">$</span> sudo cp target/release/buffy /usr/local/bin/
+<br>
+<span class="comment"># 2. Add the plugin repository</span>
+<span class="prompt">$</span> <span class="cmd">buffy --repo</span> https://github.com/Blaze12345-deluxe/Buffy-Plugins
+<br>
+<span class="comment"># 3. Try a bundled command (pre-installed in v0.1.2+)</span>
+<span class="prompt">$</span> <span class="cmd">buffy pip-env</span>
+<span class="output">  Creating Python virtual environment...</span>
+<span class="output">  Virtual environment '.venv' created.</span>
+<br>
+<span class="comment"># 4. Search for and install plugins</span>
+<span class="prompt">$</span> <span class="cmd">buffy --repo search</span> docker
+<span class="prompt">$</span> <span class="cmd">buffy --install</span> docker-tools
+<br>
+<span class="comment"># 5. See all available commands</span>
+<span class="prompt">$</span> <span class="cmd">buffy --help</span>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn" href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/INSTALLATION.txt" target="_blank" rel="noopener">
+        Full Install Guide &rarr;
+      </a>
+      <a class="btn" href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/COMMANDS.txt" target="_blank" rel="noopener">
+        Command Reference &rarr;
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Documentation Index ─── -->
+<section class="section" id="docs">
+  <div class="container">
+    <div class="section-title">
+      <span class="arrow">&gt;&gt;</span>
+      Documentation
+    </div>
+    <p class="section-sub">Every <code>.txt</code> file in the <code>docs/</code> folder of the BuffyCLI repository.</p>
+
+    <div class="docs-grid">
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/PROJECT_OVERVIEW.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Project Overview
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/ARCHITECTURE.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Architecture
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/CODEBASE.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Codebase
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/COMMANDS.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Commands
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/SCRIPT_LANGUAGE.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Script Language
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/MODULES.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Modules
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/DEVELOPMENT.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Development
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/INSTALLATION.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Installation
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/CONFIGURATION.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Configuration
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/ROADMAP.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Roadmap
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/DESIGN_DECISIONS.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Design Decisions
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/TROUBLESHOOTING.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Troubleshooting
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/CONTRIBUTING.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Contributing
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/CHANGELOG.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Changelog
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/GLOSSARY.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Glossary
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/TODO.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> TODO
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/KNOWN_ISSUES.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> Known Issues
+      </a>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/AI_CONTEXT.txt" target="_blank" rel="noopener">
+        <span class="doc-icon">&#128196;</span> AI Context
+      </a>
+    </div>
+
+    <div style="margin-top:24px;">
+      <a class="btn" href="https://github.com/Blaze12345-deluxe/BuffyCLI/blob/master/docs/README.txt" target="_blank" rel="noopener">
+        &#128214; View Documentation Index (README.txt) &rarr;
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ─── -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/Blaze12345-deluxe/BuffyCLI">Buffy CLI</a> &nbsp;&middot;&nbsp;
+      <a href="https://github.com/Blaze12345-deluxe/Buffy-Plugins">Buffy Plugins</a> &nbsp;&middot;&nbsp;
+      <a href="https://github.com/Blaze12345-deluxe/Buffy-AI-Script-Maker">Buffy AI Script Maker</a>
+    </p>
+    <p style="margin-top:8px;">
+      MIT License &nbsp;&middot;&nbsp; Built with Rust, BSL, and Python
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
