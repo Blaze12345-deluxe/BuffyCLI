@@ -5,6 +5,26 @@
 This file tracks all notable changes to the Buffy CLI project.
 
 ================================================================================
+v0.1.3 -- 2026-07-28
+================================================================================
+
+Documentation release with corrected version references, test counts, and
+file references across all project documentation.
+
+Release: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.3
+
+Fixed:
+  - Version references updated from 0.1.0 to 0.1.2 throughout docs/
+    (README.txt, INSTALLATION.txt, COMMANDS.txt, ROADMAP.txt)
+  - Test count corrected from 77+ to 95+ in DEVELOPMENT.txt and ROADMAP.txt
+    to match the actual number of #[test] annotations (95)
+  - Duplicate quick-start line removed from README.txt
+  - Branch references corrected from 'main' to 'master' in KNOWN_ISSUES.txt
+  - Outdated file references in CONTRIBUTING.md updated to point to actual
+    docs/ files (SCRIPT_LANGUAGE.txt, ARCHITECTURE.txt, etc.)
+  - ROADMAP.txt milestones updated to include v0.1.1 and v0.1.2 releases
+
+================================================================================
 v0.1.2 -- 2026-07-28
 ================================================================================
 

@@ -7,20 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased]
-
-### Added
-
-- **BSL example scripts** — 9 real-world `.bsl` examples in `examples/` covering system info, git setup, Docker cleanup, backups, network diagnostics, project scaffolding, and more
-- **`CONTRIBUTING.md`** — Comprehensive contribution guidelines covering architecture, coding standards, testing workflow, PR process, and package publishing
+## [0.1.3] — 2026-07-28
 
 ### Fixed
 
-- **Lexer** — `=` characters inside string arguments (e.g. `WRITE "====="`) no longer incorrectly parsed as metadata assignment operators
-- **Interpreter** — Runtime `OUTPUT = true/false` toggling now works mid-script instead of being read only from metadata
-- **Lint** — Missing `Statement::SetOutput` match arm added to exhaustive match
-- **Uninstall** — Removed unused variable causing compiler warning
-- **Test stability** — Shared `TEST_HOME_LOCK` mutex prevents parallel-test races on `HOME` env var across the `aliases` and `buffy_home` modules
+- **Documentation version references** — All docs (`README.txt`, `INSTALLATION.txt`, `COMMANDS.txt`, `ROADMAP.txt`) updated from 0.1.0 to 0.1.2
+- **Test count** — Corrected from 77+ to 95+ in `DEVELOPMENT.txt` and `ROADMAP.txt` to match actual `#[test]` annotation count
+- **Duplicate text** — Removed duplicate "4. See all flags:" line from `docs/README.txt`
+- **Branch references** — Corrected from "main" to "master" in `KNOWN_ISSUES.txt`
+- **CONTRIBUTING.md references** — Updated dead doc file references to point to actual existing files
+- **ROADMAP.txt milestones** — Added v0.1.1 and v0.1.2 release entries
 
 ---
 
@@ -109,5 +105,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/Blaze12345-deluxe/BuffyCLI/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Blaze12345-deluxe/BuffyCLI/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.3
 [0.1.0]: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.0
