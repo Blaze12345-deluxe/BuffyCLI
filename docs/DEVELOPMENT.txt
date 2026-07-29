@@ -98,7 +98,7 @@ Serial execution (for HOME-dependent tests):
   cargo test -- --test-threads=1
 
 Test coverage:
-  Total: 77+ tests across all modules.
+  Total: 95+ tests across all modules.
   Every module has inline unit tests.
   Integration tests cover end-to-end scenarios.
   Test fixtures provide isolated, reproducible test data.

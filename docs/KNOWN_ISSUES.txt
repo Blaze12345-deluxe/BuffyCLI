@@ -18,15 +18,16 @@ prompt lists each match with its package origin and asks the user to choose.
 
 
 ================================================================================
-2.  ALL PACKAGES INSTALLED FROM MAIN BRANCH
+2.  ALL PACKAGES INSTALLED FROM MASTER BRANCH
 ================================================================================
 
 Severity: Low
 Status: Accepted limitation
 
-Package downloads always fetch from the "main" branch of the target
-repository. There is no support for installing from a specific branch,
-tag, or commit.
+Package downloads always fetch from the "master" branch (or the configured
+default branch) of the target repository. The Buffy-Plugins repository uses
+"master" as its default branch. There is no support for installing from a
+specific branch, tag, or commit.
 
 Workaround: Fork the repository and modify the branch name in the source
 code.

@@ -85,14 +85,17 @@ Phase 9 - Polish and Documentation (COMPLETE):
 2.  CURRENT STATUS
 ================================================================================
 
-Version: 0.1.0
+Version: 0.1.2 (latest)
 Status: Released (2026-07-28)
-Release URL: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.0
-Tests: 77+ passing
+Release URLs:
+  v0.1.2: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.2
+  v0.1.1: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.1
+  v0.1.0: https://github.com/Blaze12345-deluxe/BuffyCLI/releases/tag/v0.1.0
+Tests: 95+ passing
 Documentation: Complete
 
-The core functionality is implemented, tested, and published as a GitHub
-release. The project is now available for beta testing and community
+The core functionality is implemented, tested, and published as GitHub
+releases. The project is now available for beta testing and community
 feedback.
 
 
@@ -183,9 +186,17 @@ From user feedback (anticipated):
 6.  MILESTONES
 ================================================================================
 
-v0.1.0 (Current):
+v0.1.0 (Released):
   Core functionality: CLI, resolver, BSL interpreter, package manager,
   repository integration, diagnostics, aliases, documentation.
+
+v0.1.1 (Released):
+  Bug fixes: --repo URL shorthand, master branch URL fix, num_args(1..)
+  for multi-value flags, --repair stale URL detection.
+
+v0.1.2 (Released):
+  Bundled pip-env package (pre-installed), flat-lookup ambiguity
+  resolution with user prompt when multiple packages match.
 
 v0.2.0 (Next):
   Conditional execution (IF/ELSE), loops (FOREACH), user input (ASK),

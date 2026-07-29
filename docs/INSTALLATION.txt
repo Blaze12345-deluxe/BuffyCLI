@@ -50,7 +50,7 @@ Step 4: Verify the installation:
   buffy --version
 
 Expected output:
-  buffy v0.1.0
+  buffy v0.1.2
 
 Step 5 (optional): Keep up to date:
   cd BuffyCLI && git pull origin master && cargo build --release && sudo cp target/release/buffy /usr/local/bin/buffy
@@ -77,10 +77,10 @@ Download a pre-built binary from the releases page:
   https://github.com/Blaze12345-deluxe/BuffyCLI/releases
 
 Example for Linux AMD64:
-  wget https://github.com/Blaze12345-deluxe/BuffyCLI/releases/download/v0.1.0/buffy-v0.1.0-linux-amd64.gz
-  gunzip buffy-v0.1.0-linux-amd64.gz
-  chmod +x buffy-v0.1.0-linux-amd64
-  sudo mv buffy-v0.1.0-linux-amd64 /usr/local/bin/buffy
+  wget https://github.com/Blaze12345-deluxe/BuffyCLI/releases/download/v0.1.2/buffy-v0.1.2-linux-amd64.gz
+  gunzip buffy-v0.1.2-linux-amd64.gz
+  chmod +x buffy-v0.1.2-linux-amd64
+  sudo mv buffy-v0.1.2-linux-amd64 /usr/local/bin/buffy
 
 Verify the SHA-256 checksum (displayed on the GitHub release page) before running the binary.
 

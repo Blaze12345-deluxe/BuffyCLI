@@ -502,9 +502,10 @@ Releases are done by maintainers. The process:
 ## Getting Help
 
 - **Issues:** [GitHub Issues](https://github.com/Blaze12345-deluxe/BuffyCLI/issues)
-- **BSL Spec:** [`docs/Buffy-Script-Language-Spec.txt`](docs/Buffy-Script-Language-Spec.txt)
-- **Build Plan:** [`docs/build.txt`](docs/build.txt)
-- **Package Format:** [`docs/package-format-spec.md`](docs/package-format-spec.md)
+- **BSL Spec:** [`docs/SCRIPT_LANGUAGE.txt`](docs/SCRIPT_LANGUAGE.txt)
+- **Architecture:** [`docs/ARCHITECTURE.txt`](docs/ARCHITECTURE.txt)
+- **Installation:** [`docs/INSTALLATION.txt`](docs/INSTALLATION.txt)
+- **Commands:** [`docs/COMMANDS.txt`](docs/COMMANDS.txt)
 
 ---
 

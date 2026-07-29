@@ -39,12 +39,12 @@ Run "buffy" with no arguments to see the welcome screen.
 --version
   Print the current version of Buffy.
   Example output:
-    buffy v0.1.0
+    buffy v0.1.2
 
 --about
   Display project information including features, version, and repository URL.
   Example output:
-    Buffy CLI Automation Framework v0.1.0
+    Buffy CLI Automation Framework v0.1.2
     A lightweight, cross-platform CLI automation framework.
     ...
     Repository: https://github.com/BuffyCLI

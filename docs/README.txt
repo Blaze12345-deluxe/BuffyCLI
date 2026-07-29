@@ -7,7 +7,7 @@ Description:   A lightweight, cross-platform CLI automation framework that
                lets anyone create and share terminal commands by writing
                simple text files (.bsl) -- no programming experience required.
 Language:      Rust (single crate, binary + library)
-Version:       0.1.0
+Version:       0.1.2
 License:       MIT
 Repository:    https://github.com/Blaze12345-deluxe/BuffyCLI
 Plugin Repo:   https://github.com/Blaze12345-deluxe/Buffy-Plugins
@@ -107,9 +107,6 @@ QUICK START
        buffy --install docker-tools
 
   6. See all flags:
-       buffy --help
-
-  4. See all flags:
        buffy --help
 
 ================================================================================
